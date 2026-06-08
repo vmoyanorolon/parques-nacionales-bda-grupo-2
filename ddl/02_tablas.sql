@@ -60,3 +60,72 @@ BEGIN
 		Monto DECIMAL(10,2) NOT NULL
 	)
 END
+
+----------------------------------------
+-- PERSONAL 
+----------------------------------------
+
+/*
+DROP TABLE Personal.Guia
+DROP TABLE Personal.Guardaparque
+DROP TABLE Personal.Asignacion
+DROP TABLE Personal.Habilitacion
+*/
+
+IF NOT EXISTS (SELECT name FROM sys.table_types WHERE name = 'Guia')
+BEGIN
+	CREATE TABLE Personal.Guia(
+		IdGuia INT IDENTITY(1,1) PRIMARY KEY,
+		Telefono VARCHAR(20) NOT NULL,
+		CorreoGuia VARCHAR(100) NOT NULL CONSTRAINT CK_CorreoGuia CHECK(CorreoGuia LIKE '%_@__%.__%'),
+		NumeroDocumento VARCHAR(15) NOT NULL UNIQUE,
+		TipoDocumento VARCHAR(15) NOT NULL CHECK( TipoDocumento IN('DNI','PAS', 'CUIT', 'LC', 'LE')),
+		Edad TINYINT NOT NULL CHECK (Edad BETWEEN 0 AND 99),
+		Apellido VARCHAR(50) NOT NULL,
+		Titulo VARCHAR(50) NOT NULL
+	)
+END
+
+IF NOT EXISTS (SELECT name FROM sys.table_types WHERE name = 'Guardaparque')
+BEGIN
+	CREATE TABLE Personal.Guardaparque(
+		IdGuardaparque INT IDENTITY(1,1) PRIMARY KEY,
+		Telefono VARCHAR(20) NOT NULL,
+		CorreoGuardaparque VARCHAR(100) NOT NULL CONSTRAINT CK_CorreoGuardaparque CHECK(CorreoGuardaparque LIKE '%_@__%.__%'),
+		NumeroDocumento VARCHAR(15) NOT NULL UNIQUE,
+		TipoDocumento VARCHAR(15) NOT NULL CHECK(TipoDocumento IN('DNI','PAS', 'CUIT', 'LC', 'LE')),
+		Edad TINYINT NOT NULL CHECK (Edad BETWEEN 0 AND 99),
+		Apellido VARCHAR(50) NOT NULL,
+		Estado VARCHAR(20) NOT NULL CHECK(Estado IN('Activo','Inactivo'))
+	)
+END
+
+IF NOT EXISTS (SELECT name FROM sys.table_types WHERE name = 'Asignacion')
+BEGIN
+	CREATE TABLE Personal.Asignacion(
+		IdAsignacion INT IDENTITY(1,1) PRIMARY KEY,
+		FechaIngreso DATE NOT NULL,
+		FechaEgreso DATE DEFAULT NULL,
+		Motivo VARCHAR(200) DEFAULT NULL,
+		IdParque INT NOT NULL UNIQUE,
+		IdGuardaparque INT NOT NULL UNIQUE,
+
+		FOREIGN KEY (IdParque) REFERENCES Parques.Parque(IdParque),
+		FOREIGN KEY (IdGuardaparque) REFERENCES Personal.Guardaparque(IdGuardaparque)
+	)
+END
+
+IF NOT EXISTS (SELECT name FROM sys.table_types WHERE name = 'Habilitacion')
+BEGIN
+	CREATE TABLE Personal.Habilitacion(
+		IdHabilitacion INT IDENTITY(1,1) PRIMARY KEY,
+		FechaInicio DATE NOT NULL,
+		DiasVigentes INT NOT NULL CHECK(DiasVigentes > 0),
+		IdGuia INT NOT NULL UNIQUE,
+		IdActividad INT NOT NULL UNIQUE,
+
+		FOREIGN KEY (IdGuia) REFERENCES Personal.Guia(IdGuia),
+		FOREIGN KEY (IdActividad) REFERENCES Turismo.Actividad(IdActividad)
+	)
+END
+
