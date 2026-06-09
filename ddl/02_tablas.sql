@@ -151,6 +151,65 @@ BEGIN
 END
 
 ----------------------------------------
+-- TURISMO 
+----------------------------------------
+
+/*
+- DROP TABLE Turismo.Actividad
+- DROP TABLE Turismo.Entrada
+- DROP TABLE Turismo.TipoVisitante
+- DROP TABLE Turismo.Visitante
+*/
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Actividad')
+BEGIN
+	CREATE TABLE Turismo.Actividad(
+		IdActividad INT IDENTITY(1,1) PRIMARY KEY,
+		Nombre VARCHAR(50) NOT NULL,
+		Tipo VARCHAR(9) CONSTRAINT CK_Actividad_Tipo CHECK(Tipo IN('Tour', 'Atracción')),
+		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Actividad_Costo CHECK(Costo > 0),
+		CupoMaximo INT NOT NULL CONSTRAINT CK_Actividad_CupoMaximo CHECK(CupoMaximo > 0),
+		Duracion INT NOT NULL CONSTRAINT CK_Actividad_Duracion CHECK(Duracion > 0),
+		IdParque INT NOT NULL FOREIGN KEY REFERENCES Parques.Parque(IdParque)
+	);
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Entrada')
+BEGIN
+	CREATE TABLE Turismo.Entrada(
+		IdEntrada INT IDENTITY(1,1) PRIMARY KEY,
+		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Entrada_Costo CHECK(Costo > 0),
+		FechaAcceso DATE NOT NULL,
+		IdParque INT NOT NULL FOREIGN KEY REFERENCES Parques.Parque(IdParque)
+	);
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'TipoVisitante')
+BEGIN
+	CREATE TABLE Turismo.TipoVisitante(
+		IdTipoVisitante INT IDENTITY(1,1) PRIMARY KEY,
+		Descripcion VARCHAR(50) NOT NULL,
+		Descuento TINYINT NOT NULL CONSTRAINT CK_TipoVisitante_Descuento CHECK(Descuento BETWEEN 0 AND 100)
+	);
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Visitante')
+BEGIN
+	CREATE TABLE Turismo.Visitante(
+		IdVisitante INT IDENTITY(1,1) PRIMARY KEY,
+		Telefono VARCHAR(20) NOT NULL,
+		CorreoVisitante VARCHAR(100) NOT NULL CONSTRAINT CK_Visitante_CorreoVisitante CHECK(CorreoVisitante LIKE '%_@__%.__%'),
+		NumeroDocumento VARCHAR(15) NOT NULL UNIQUE,
+		TipoDocumento VARCHAR(15) NOT NULL CONSTRAINT CK_Visitante_TipoDocumento CHECK(TipoDocumento IN('DNI','PAS', 'CUIT', 'LC', 'LE')),
+		CUIT VARCHAR(15) NOT NULL UNIQUE,
+		Edad TINYINT NOT NULL CONSTRAINT CK_Visitante_Edad CHECK (Edad BETWEEN 0 AND 99),
+		Nombre VARCHAR(50) NOT NULL,
+		Apellido VARCHAR(50) NOT NULL,
+		IdTipoVisitante INT FOREIGN KEY REFERENCES Turismo.TipoVisitante(IdTipoVisitante)
+	);
+END
+
+----------------------------------------
 -- VENTAS 
 ----------------------------------------
 
