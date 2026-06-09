@@ -150,6 +150,48 @@ BEGIN
 		)
 END
 
+----------------------------------------
+-- VENTAS 
+----------------------------------------
 
+/*
+- DROP TABLE Ventas.Venta
+- DROP TABLE Ventas.LineaDeActividad
+- DROP TABLE Ventas.LineaDeEntrada
+*/
 
-		
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Venta')
+BEGIN
+	CREATE TABLE Ventas.Venta (
+		IdVenta INT IDENTITY(1,1) PRIMARY KEY,
+		Fecha DateTime NOT NULL,
+		Monto DECIMAL(10,2) NOT NULL CONSTRAINT CK_Venta_Monto CHECK(Monto > 0),
+		MetodoDePago VARCHAR(20) NOT NULL,
+		PuntoDeVenta VARCHAR(20) NOT NULL,
+		IdVisitante INT NOT NULL FOREIGN KEY REFERENCES Turismo.Visitante(IdVisitante)
+	);
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LineaDeActividad')
+BEGIN
+	CREATE TABLE Ventas.LineaDeActividad(
+		PrecioUnitario DECIMAL(10,2) NOT NULL CONSTRAINT CK_LineaDeActividad_PrecioUnitario CHECK(PrecioUnitario > 0),
+		Cantidad TINYINT NOT NULL CONSTRAINT CK_LineaDeActividad_Cantidad CHECK(Cantidad >0),
+		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
+		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeActividad_NumeroDeItem CHECK(NumeroDeItem >0),
+		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
+		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
+	);
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LineaDeEntrada')
+BEGIN
+	CREATE TABLE Ventas.LineaDeEntrada(
+		PrecioUnitario DECIMAL(10,2) NOT NULL CONSTRAINT CK_LineaDeEntrada_PrecioUnitario CHECK(PrecioUnitario > 0),
+		Cantidad TINYINT NOT NULL CONSTRAINT CK_LineaDeEntrada_Cantidad CHECK(Cantidad >0),
+		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
+		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeEntrada_NumeroDeItem CHECK(NumeroDeItem >0),
+		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
+		IdEntrada INT NOT NULL FOREIGN KEY REFERENCES Turismo.Entrada(IdEntrada)
+	);
+END
