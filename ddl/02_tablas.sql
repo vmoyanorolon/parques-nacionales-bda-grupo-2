@@ -129,3 +129,27 @@ BEGIN
 	)
 END
 
+----------------------------------------
+-- PARQUES 
+----------------------------------------
+
+IF NOT EXISTS (SELECT name FROM sys.table_types WHERE name = 'Parque')
+BEGIN
+	CREATE TABLE Parques.Parque(
+		IdParque INT IDENTITY(1,1) PRIMARY KEY,
+		HorarioCierre TIME NOT NULL,
+		HorarioApertura TIME NOT NULL,
+		Superficie DECIMAL (10,2) NOT NULL CHECK(Superficie > 0),
+		Provincia VARCHAR(50) NOT NULL,
+		Numero INT NOT NULL,
+		Localidad VARCHAR(50) NOT NULL,
+		TipoParque VARCHAR(50) NOT NULL CHECK(TipoParque IN('Parque Nacional',
+						'Monumento Natural','Reserva Nacional',
+						'Reserva Natural Estricta','Reserva Natural Silvestre',
+						'Reserva Natural Educativa'))
+		)
+END
+
+
+
+		
