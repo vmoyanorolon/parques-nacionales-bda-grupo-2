@@ -3,3 +3,206 @@
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
 -- Descripción: Stored Procedures del esquema Personal
+
+USE ParquesNacionales
+GO
+
+/*
+DROP PROCEDURE SP_ModificacionAsignacion
+*/
+CREATE OR ALTER PROCEDURE SP_ModificacionAsignacion
+	@IdAsignacion INT,
+	@Motivo VARCHAR(200) = NULL
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+	DECLARE @FechaEgreso DATE = GETDATE()
+	DECLARE @FechaEgresoActual DATE
+	DECLARE @IdGuardaparque INT
+
+	SELECT @IdGuardaparque = IdGuardaparque,
+		   @FechaEgresoActual = FechaEgreso
+	FROM Personal.Asignacion
+	WHERE IdAsignacion = @IdAsignacion
+	
+	IF @IdGuardaparque IS NULL
+	BEGIN
+		PRINT 'La asignación referenciada no existe'
+		RETURN
+	END
+
+	IF @FechaEgresoActual IS NOT NULL
+	BEGIN
+		PRINT 'La asignación ya tiene fecha de egreso registrada'
+		RETURN
+	END
+
+	BEGIN TRANSACTION
+	BEGIN TRY
+		UPDATE Personal.Asignacion
+		SET FechaEgreso = @FechaEgreso,
+			Motivo = @Motivo
+		WHERE IdAsignacion = @IdAsignacion
+
+		UPDATE Personal.Guardaparque
+		SET Estado = 'Inactivo'
+		WHERE IdGuardaparque = @IdGuardaparque
+
+		COMMIT TRANSACTION
+		PRINT 'La asignación ' + CAST(@IdAsignacion AS VARCHAR) + ' fue modificada con éxito'
+
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT 'Error: ' + ERROR_MESSAGE()
+	END CATCH
+END
+GO
+
+/*
+DROP PROCEDURE SP_AltaHabilitacion
+*/
+CREATE OR ALTER PROCEDURE SP_AltaHabilitacion
+	@IdGuia INT,
+	@IdActividad INT,
+	@DiasVigentes INT
+AS
+BEGIN
+	SET NOCOUNT ON
+
+	DECLARE @IdParqueActividad INT
+	DECLARE @IdNuevoParqueParaGuia INT
+	DECLARE @IdHabilitacion INT
+	DECLARE @FechaInicio DATE = GETDATE()
+
+	SELECT @IdParqueActividad = IdParque
+	FROM Turismo.Actividad
+	WHERE IdActividad = @IdActividad
+
+	IF @IdParqueActividad IS NULL
+	BEGIN
+		PRINT 'La actividad ' + CAST(@IdActividad AS VARCHAR) + ' no existe'
+		RETURN
+	END
+
+	IF NOT EXISTS (
+	SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia
+	)
+	BEGIN
+		PRINT 'El guía ' + CAST(@IdGuia AS VARCHAR) + ' no existe'
+		RETURN
+	END
+	
+	-- Si el guia no trabaja en el parque en el que se ofrece la actividad, significa que
+	-- es un nuevo parque para el guía y hay que registrarlo en Personal.GuiaTrabajaEnParque
+	
+	IF NOT EXISTS(
+	SELECT 1
+	FROM Personal.GuiaTrabajaEnParque
+	WHERE	IdGuia = @IdGuia AND
+			IdParque = @IdParqueActividad)
+	BEGIN
+		SELECT @IdNuevoParqueParaGuia = @IdParqueActividad
+	END
+
+	BEGIN TRANSACTION
+	BEGIN TRY
+		INSERT INTO Personal.Habilitacion(FechaInicio, DiasVigentes, IdGuia, IdActividad)
+		VALUES(@FechaInicio, @DiasVigentes, @IdGuia, @IdActividad)
+		SELECT @IdHabilitacion = SCOPE_IDENTITY()
+
+		IF @IdNuevoParqueParaGuia IS NOT NULL
+		BEGIN
+			INSERT INTO Personal.GuiaTrabajaEnParque(IdGuia, IdParque)
+			VALUES(@IdGuia, @IdNuevoParqueParaGuia)
+		END
+
+		COMMIT TRANSACTION
+		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' fue dada de alta con éxito'
+
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT 'Error: ' + ERROR_MESSAGE()
+	END CATCH
+END
+GO
+
+/*
+DROP PROCEDURE SP_ModificacionHabilitacion
+*/
+CREATE OR ALTER PROCEDURE SP_ModificacionHabilitacion
+	@IdHabilitacion INT,
+	@DiasVigentes INT
+AS
+BEGIN
+	SET NOCOUNT ON
+
+	IF NOT EXISTS(
+		SELECT 1
+		FROM Personal.Habilitacion
+		WHERE IdHabilitacion = @IdHabilitacion
+	)
+	BEGIN
+		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' no existe'
+		RETURN
+	END
+
+	IF @DiasVigentes <= 0
+	BEGIN
+		PRINT 'Los días vigentes deben ser mayores a 0'
+		RETURN
+	END
+
+	BEGIN TRANSACTION
+	BEGIN TRY
+		UPDATE Personal.Habilitacion
+		SET DiasVigentes = @DiasVigentes
+		WHERE IdHabilitacion = @IdHabilitacion
+
+		COMMIT TRANSACTION
+		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' fue actualizada con éxito'
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT 'Error: ' + ERROR_MESSAGE()
+	END CATCH
+END
+GO
+
+/*
+DROP SP_BajaHabilitacion
+*/
+CREATE OR ALTER PROCEDURE SP_BajaHabilitacion
+	@IdHabilitacion INT
+AS
+BEGIN
+	SET NOCOUNT ON
+
+	DECLARE @IdActividad INT
+	DECLARE @IdGuia INT
+
+	SELECT @IdActividad = IdActividad, @IdGuia = IdGuia
+	FROM Personal.Habilitacion
+	WHERE IdHabilitacion = @IdHabilitacion
+
+	IF @IdActividad IS NULL
+	BEGIN
+		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' no existe'
+		RETURN
+	END
+
+	-- Falta validar si alguna actividad que tomará lugar en el futuro depende de este guía
+
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DELETE FROM Personal.Habilitacion WHERE IdHabilitacion = @IdHabilitacion
+		COMMIT TRANSACTION
+		PRINT 'La habilitación' + CAST(@IdHabilitacion AS VARCHAR) + 'fue eliminada con éxito'
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT 'Error: ' + ERROR_MESSAGE()
+	END CATCH
+END
