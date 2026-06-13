@@ -279,3 +279,158 @@ BEGIN
     END CATCH
 END
 GO
+
+--------------------------------------------------------------------------------
+-- TURNO
+--------------------------------------------------------------------------------
+
+-- =============================================
+-- SP_AltaTurno
+-- =============================================
+/*
+DROP PROCEDURE SP_AltaTurno
+*/
+CREATE OR ALTER PROCEDURE SP_AltaTurno
+@IdActividad INT,
+@Costo DECIMAL(10,2),
+@HoraInicio TIME(0),
+@HoraFin TIME(0),
+@DiaDeSemana TINYINT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    DECLARE @IdTurno INT
+
+    IF NOT EXISTS(
+        SELECT 1
+        FROM Turismo.Actividad
+        WHERE IdActividad = @IdActividad
+    )
+    BEGIN
+        RAISERROR('La actividad indicada no existe',16,1)
+        RETURN
+    END
+
+    BEGIN TRANSACTION
+    BEGIN TRY
+        
+        INSERT INTO Turismo.Turno(IdActividad, Costo, HoraInicio, HoraFin, DiaDeSemana)
+        VALUES(@IdActividad, @Costo, @HoraInicio, @HoraFin, @DiaDeSemana)
+        SELECT @IdTurno = SCOPE_IDENTITY()
+        
+        COMMIT TRANSACTION
+        PRINT 'El turno ' + CAST(@IdTurno AS VARCHAR) + ' fue creado con éxito'
+
+    END TRY
+    BEGIN CATCH
+        PRINT 'Error: ' + ERROR_MESSAGE()
+        ROLLBACK TRANSACTION
+    END CATCH
+END
+GO
+
+/*
+	CREATE TABLE Turismo.Turno(
+		IdTurno INT IDENTITY(1,1) PRIMARY KEY,
+		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Turno_Costo CHECK(Costo >= 0),
+		HoraInicio TIME(0) NOT NULL,
+		HoraFin TIME(0) NOT NULL,
+		DiaDeSemana TINYINT NOT NULL CONSTRAINT CK_Turno_DiaDeSemana CHECK (DiaDeSemana BETWEEN 1 AND 7), -- Domingo = 1
+		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
+	);
+*/
+-- =============================================
+-- SP_ModificacionTurno
+-- =============================================
+/*
+DROP PROCEDURE SP_ModificacionTurno
+*/
+CREATE OR ALTER PROCEDURE SP_ModificacionTurno
+@IdTurno INT,
+@Costo DECIMAL(10,2) = NULL,
+@HoraInicio TIME(0) = NULL,
+@HoraFin TIME(0) = NULL,
+@DiaDeSemana TINYINT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    IF NOT EXISTS(
+    SELECT 1
+    FROM Turismo.Turno
+    WHERE IdTurno = @IdTurno
+    )
+    BEGIN
+        RAISERROR('El turno indicado no existe',16,1)
+        RETURN
+    END
+
+    BEGIN TRANSACTION
+    BEGIN TRY
+
+        UPDATE Turismo.Turno
+        SET
+            Costo = ISNULL(@Costo, Costo),
+            HoraInicio = ISNULL(@HoraInicio, HoraInicio),
+            HoraFin = ISNULL(@HoraFin, HoraFin),
+            DiaDeSemana = ISNULL(@DiaDeSemana, DiaDeSemana)
+        WHERE IdTurno = @IdTurno
+        COMMIT TRANSACTION
+        PRINT 'El turno ' + CAST(@IdTurno AS VARCHAR) + ' fue modificado con éxito'
+
+    END TRY
+    BEGIN CATCH
+        PRINT 'Error: ' + ERROR_MESSAGE()
+        ROLLBACK TRANSACTION
+    END CATCH
+
+    END
+    GO  
+
+-- =============================================
+-- SP_BajaTurno
+-- =============================================
+/*
+DROP PROCEDURE SP_BajaTurno
+*/
+CREATE OR ALTER PROCEDURE SP_BajaTurno
+@IdTurno INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    IF NOT EXISTS(
+        SELECT 1
+        FROM Turismo.Turno
+        WHERE IdTurno = @IdTurno
+    )
+    BEGIN
+        RAISERROR('El turno indicado no existe', 16, 1)
+        RETURN
+    END
+
+    IF EXISTS (
+        SELECT 1
+        FROM Turismo.EntradaActividad ea
+        WHERE ea.IdTurno = @IdTurno
+    )
+    BEGIN
+        RAISERROR('El turno tiene entradas a actividades asociadas y no puede eliminarse', 16, 1)
+        RETURN
+    END
+
+    BEGIN TRANSACTION
+    BEGIN TRY
+        DELETE FROM Turismo.Turno WHERE IdTurno = @IdTurno
+
+        COMMIT TRANSACTION
+        PRINT 'El turno ' + CAST(@IdTurno AS VARCHAR) + ' fue eliminado con éxito'
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION
+        PRINT 'Error: ' + ERROR_MESSAGE()
+    END CATCH
+END
+GO
