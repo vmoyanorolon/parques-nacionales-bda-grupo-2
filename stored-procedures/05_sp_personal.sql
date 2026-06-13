@@ -7,6 +7,9 @@
 USE ParquesNacionales
 GO
 
+-- =============================================
+-- SP_ModificacionAsignacion
+-- =============================================
 /*
 DROP PROCEDURE SP_ModificacionAsignacion
 */
@@ -28,13 +31,13 @@ BEGIN
 	
 	IF @IdGuardaparque IS NULL
 	BEGIN
-		PRINT 'La asignación referenciada no existe'
+		RAISERROR ('La asignación referenciada no existe',16,1)
 		RETURN
 	END
 
 	IF @FechaEgresoActual IS NOT NULL
 	BEGIN
-		PRINT 'La asignación ya tiene fecha de egreso registrada'
+		RAISERROR ('La asignación ya tiene fecha de egreso registrada',16,1)
 		RETURN
 	END
 
@@ -60,6 +63,9 @@ BEGIN
 END
 GO
 
+-- =============================================
+-- SP_AltaHabilitacion
+-- =============================================
 /*
 DROP PROCEDURE SP_AltaHabilitacion
 */
@@ -82,7 +88,7 @@ BEGIN
 
 	IF @IdParqueActividad IS NULL
 	BEGIN
-		PRINT 'La actividad ' + CAST(@IdActividad AS VARCHAR) + ' no existe'
+		RAISERROR ('La actividad no existe',16,1)
 		RETURN
 	END
 
@@ -90,7 +96,7 @@ BEGIN
 	SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia
 	)
 	BEGIN
-		PRINT 'El guía ' + CAST(@IdGuia AS VARCHAR) + ' no existe'
+		RAISERROR ('El guía no existe',16,1)
 		RETURN
 	END
 	
@@ -129,6 +135,9 @@ BEGIN
 END
 GO
 
+-- =============================================
+-- SP_ModificacionHabilitacion
+-- =============================================
 /*
 DROP PROCEDURE SP_ModificacionHabilitacion
 */
@@ -145,13 +154,13 @@ BEGIN
 		WHERE IdHabilitacion = @IdHabilitacion
 	)
 	BEGIN
-		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' no existe'
+		RAISERROR ('La habilitación no existe',16,1)
 		RETURN
 	END
 
 	IF @DiasVigentes <= 0
 	BEGIN
-		PRINT 'Los días vigentes deben ser mayores a 0'
+		RAISERROR ('Los días vigentes deben ser mayores a 0',16,1)
 		RETURN
 	END
 
@@ -171,6 +180,9 @@ BEGIN
 END
 GO
 
+-- =============================================
+-- SP_BajaHabilitacion
+-- =============================================
 /*
 DROP SP_BajaHabilitacion
 */
@@ -189,11 +201,9 @@ BEGIN
 
 	IF @IdActividad IS NULL
 	BEGIN
-		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' no existe'
+		RAISERROR ('La habilitación no existe',16,1)
 		RETURN
 	END
-
-	-- Falta validar si alguna actividad que tomará lugar en el futuro depende de este guía
 
 	BEGIN TRANSACTION
 	BEGIN TRY
