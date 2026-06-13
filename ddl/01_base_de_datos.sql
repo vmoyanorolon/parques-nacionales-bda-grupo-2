@@ -8,7 +8,11 @@
 -- BASE DE DATOS
 ----------------------------------------
 
--- DROP DATABASE ParquesNacionales
+/*
+USE tempdb
+DROP DATABASE ParquesNacionales
+*/
+
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ParquesNacionales')
 BEGIN
 	CREATE DATABASE ParquesNacionales
