@@ -225,3 +225,57 @@ BEGIN
 
     DELETE FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante;
 END
+GO
+
+--------------------------------------------------------------------------------
+-- LOGICA DE NEGOCIO 
+--------------------------------------------------------------------------------
+
+-- =============================================
+-- SP_ActualizarPrecioEntrada
+-- Actualiza el costo de las entradas (EntradaParque) de un parque.
+-- =============================================
+
+/*
+DROP PROCEDURE SP_ActualizarPrecioEntrada
+*/
+
+CREATE OR ALTER PROCEDURE SP_ActualizarPrecioEntrada
+    @IdParque INT,
+    @NuevoCosto DECIMAL(10,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+        BEGIN
+            RAISERROR('El parque indicado no existe.', 16, 1);
+            RETURN;
+        END
+
+        IF @NuevoCosto <= 0
+        BEGIN
+            RAISERROR('El nuevo costo debe ser mayor a cero.', 16, 1);
+            RETURN;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdParque = @IdParque)
+        BEGIN
+            RAISERROR('El parque no tiene entradas registradas para actualizar.', 16, 1);
+            RETURN;
+        END
+
+        UPDATE Turismo.EntradaParque
+        SET Costo = @NuevoCosto
+        WHERE IdParque = @IdParque;
+
+        PRINT 'Se actualizaron ' + CAST(@@ROWCOUNT AS VARCHAR(10))
+              + ' entrada(s) del parque.';
+    END TRY
+    BEGIN CATCH
+        DECLARE @Msg NVARCHAR(2048) = ERROR_MESSAGE();
+        RAISERROR(@Msg, 16, 1);
+    END CATCH
+END
+GO
