@@ -138,6 +138,10 @@ GO
 -- CREACION 
 ----------------------------------------
 
+/*
+EXEC SP_AltaTipoVisitante 'Jubilado', 20
+SELECT * FROM Turismo.TipoVisitante
+*/
 
 
 CREATE PROCEDURE SP_AltaTipoVisitante
@@ -155,4 +159,69 @@ BEGIN
 
     INSERT INTO Turismo.TipoVisitante (Descripcion, Descuento)
     VALUES (@Descripcion, @Descuento);
+END
+GO
+----------------------------------------
+-- MODIFICACION 
+----------------------------------------
+
+/*
+EXEC SP_ModificacionTipoVisitante 1, null, 15;
+SELECT * FROM Turismo.TipoVisitante;
+*/
+
+CREATE PROCEDURE SP_ModificacionTipoVisitante
+    @IdTipoVisitante INT,
+    @Descripcion VARCHAR(50) = NULL,
+    @Descuento TINYINT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante)
+    BEGIN
+        RAISERROR('El tipo de visitante no existe.', 16, 1);
+        RETURN;
+    END
+
+    IF @Descripcion IS NOT NULL AND EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE Descripcion = @Descripcion AND IdTipoVisitante <> @IdTipoVisitante)
+    BEGIN
+        RAISERROR('Ya existe otro tipo de visitante con esa descripción.', 16, 1);
+        RETURN;
+    END
+
+    UPDATE Turismo.TipoVisitante
+    SET Descripcion = COALESCE(@Descripcion, Descripcion),
+        Descuento = COALESCE(@Descuento, Descuento)
+    WHERE IdTipoVisitante = @IdTipoVisitante;
+END
+GO
+----------------------------------------
+-- BAJA 
+----------------------------------------
+
+/*
+EXEC SP_BajaTipoVisitante 1;
+SELECT * FROM Turismo.Visitante;
+*/
+
+CREATE PROCEDURE SP_BajaTipoVisitante
+    @IdTipoVisitante INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante)
+    BEGIN
+        RAISERROR('El tipo de visitante no existe.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM Turismo.Visitante WHERE IdTipoVisitante = @IdTipoVisitante)
+    BEGIN
+        RAISERROR('No se puede eliminar: el tipo de visitante tiene visitantes asociados.', 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante;
 END
