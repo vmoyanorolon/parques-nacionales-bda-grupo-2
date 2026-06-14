@@ -444,9 +444,7 @@ DROP PROCEDURE SP_AltaActividad
 CREATE OR ALTER PROCEDURE SP_AltaActividad
     @Nombre VARCHAR(50),
     @Tipo VARCHAR(9),
-    @Costo DECIMAL(10,2),
     @CupoMaximo INT,
-    @Duracion INT,
     @IdParque INT
 AS
 BEGIN
@@ -466,9 +464,10 @@ BEGIN
         RETURN;
     END
 
-    INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, CupoMaximo, Duracion, IdParque)
-    VALUES (@Nombre, @Tipo, @Costo, @CupoMaximo, @Duracion, @IdParque);
+    INSERT INTO Turismo.Actividad (Nombre, Tipo, CupoMaximo, IdParque)
+    VALUES (@Nombre, @Tipo, @CupoMaximo, @IdParque);
 
+    PRINT 'La actividad se creo correctamente.'
 END;
 GO
 
@@ -487,12 +486,18 @@ CREATE OR ALTER PROCEDURE SP_ModificacionActividad
     @IdActividad INT,
     @Nombre VARCHAR(50) = NULL,
     @Tipo VARCHAR(9) = NULL,
-    @Costo DECIMAL(10,2) = NULL,
     @CupoMaximo INT = NULL,
-    @Duracion INT = NULL
+    @IdParque INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON
+
+    --Validamos que el parque exista
+    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+    BEGIN
+        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
+        RETURN;
+    END
 
     --Verficamos que la actividad exista
     IF NOT EXISTS (SELECT 1 FROM Turismo.Actividad WHERE IdActividad = @IdActividad)
@@ -504,9 +509,7 @@ BEGIN
     UPDATE Turismo.Actividad
     SET Nombre     = ISNULL(@Nombre, Nombre),
         Tipo       = ISNULL(@Tipo, Tipo),
-        Costo      = ISNULL(Costo, Costo),
-        CupoMaximo = ISNULL(@CupoMaximo, CupoMaximo),
-        Duracion   = ISNULL(@Duracion, Duracion)
+        CupoMaximo = ISNULL(@CupoMaximo, CupoMaximo)
     WHERE IdActividad = @IdActividad;
 
     PRINT 'Actividad actualizada correctamente.';
@@ -518,7 +521,10 @@ GO
 ----------------------------------------
 
 /*
+EXEC SP_BajaActividad 1
+SELECT * FROM Turismo.Actividad
 
+DROP PROCEDURE SP_BajaActividad
 */
 
 CREATE OR ALTER PROCEDURE SP_BajaActividad
@@ -541,8 +547,100 @@ BEGIN
     BEGIN CATCH
         RAISERROR('No se puede eliminar la actividad: tiene registros relacionados (parques, entradas, personal asignado, etc.).', 16, 1)
     END CATCH
-END
-
-
+END;
+GO
+--------------------------------------------------------------------------------
+-- EntradaParque
+--------------------------------------------------------------------------------
     
+----------------------------------------
+-- CREACION 
+----------------------------------------
+
+CREATE PROCEDURE SP_AltaEntradaParque
+    @Costo DECIMAL(10,2),
+    @FechaAcceso DATE,
+    @IdParque INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Validamos que el parque exista
+    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+    BEGIN
+        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
+        RETURN;
+    END
+
+    INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) 
+    VALUES (@Costo, @FechaAcceso, @IdParque)
+
+    PRINT 'La entrada se creo correctamente.'
+END;
+GO
+
+----------------------------------------
+-- MODIFICACION
+----------------------------------------
+
+CREATE OR ALTER PROCEDURE SP_ModificacionEntradaParque
+    @IdEntradaParque INT,
+    @Costo DECIMAL(10,2) = NULL,
+    @FechaAcceso DATE = NULL,
+    @IdParque INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Validamos que el parque exista si es que se ingreso alguno
+    IF @IdParque IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+    BEGIN
+        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
+        RETURN;
+    END
+
+    --Validamos que la entrada exista
+    IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
+    BEGIN
+        RAISERROR('La entrada que se quiere modificar no existe.', 16, 1);
+        RETURN;
+    END
+
+    UPDATE Turismo.EntradaParque
+    SET Costo       = ISNULL(@Costo, Costo),
+        FechaAcceso = ISNULL(@FechaAcceso, FechaAcceso),
+        IdParque    = ISNULL(@IdParque, IdParque)
+    WHERE IdEntradaParque = @IdEntradaParque;
+
+    PRINT 'La entrada al parque se modifico correctamente.'
+END;
+GO
+
+----------------------------------------
+-- BAJA 
+----------------------------------------
+
+CREATE OR ALTER PROCEDURE SP_BajaEntradaParque
+    @IdEntradaParque INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Validamos que la entrada exista
+    IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
+    BEGIN
+        RAISERROR('la entrada que se quiere eliminar no existe.', 16, 1);
+        RETURN;
+    END
+
+    BEGIN TRY
+        DELETE FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
+        PRINT 'la entrada se elimino correctamente.'
+    END TRY
+    BEGIN CATCH
+        RAISERROR('No se puede eliminar la entrada: tiene lineas de entrada a parque asociadas.', 16, 1);
+    END CATCH
+END;
+GO
+
 
