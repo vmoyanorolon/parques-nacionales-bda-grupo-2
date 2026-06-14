@@ -4,6 +4,8 @@
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
 -- Descripción: Stored Procedures del esquema Turismo
 
+USE ParquesNacionales
+GO
 
 --------------------------------------------------------------------------------
 -- VISITANTE 
@@ -330,16 +332,6 @@ BEGIN
 END
 GO
 
-/*
-	CREATE TABLE Turismo.Turno(
-		IdTurno INT IDENTITY(1,1) PRIMARY KEY,
-		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Turno_Costo CHECK(Costo >= 0),
-		HoraInicio TIME(0) NOT NULL,
-		HoraFin TIME(0) NOT NULL,
-		DiaDeSemana TINYINT NOT NULL CONSTRAINT CK_Turno_DiaDeSemana CHECK (DiaDeSemana BETWEEN 1 AND 7), -- Domingo = 1
-		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
-	);
-*/
 -- =============================================
 -- SP_ModificacionTurno
 -- =============================================
