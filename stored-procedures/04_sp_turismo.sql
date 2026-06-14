@@ -434,3 +434,123 @@ BEGIN
     END CATCH
 END
 GO
+
+--------------------------------------------------------------------------------
+-- ACTIVIDAD
+--------------------------------------------------------------------------------
+
+----------------------------------------
+-- CREACION 
+----------------------------------------
+
+/*
+EXEC SP_AltaActividad 'Senderismo', 'Tour', 20, 1;
+SELECT * FROM Turismo.Actividad
+DROP PROCEDURE SP_AltaActividad
+*/
+
+CREATE OR ALTER PROCEDURE SP_AltaActividad
+    @Nombre VARCHAR(50),
+    @Tipo VARCHAR(9),
+    @Costo DECIMAL(10,2),
+    @CupoMaximo INT,
+    @Duracion INT,
+    @IdParque INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Validamos que el parque exista
+    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+    BEGIN
+        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
+        RETURN;
+    END
+
+    --Validamos que no exista la misma actividad dentro del mismo parque
+    IF EXISTS (SELECT 1 FROM Turismo.Actividad A WHERE Nombre = @Nombre AND IdParque = @IdParque)
+    BEGIN
+        RAISERROR('La actividad "%s" ya existe dentro del parque con Id %d', 16, 1, @Nombre, @IdParque);
+        RETURN;
+    END
+
+    INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, CupoMaximo, Duracion, IdParque)
+    VALUES (@Nombre, @Tipo, @Costo, @CupoMaximo, @Duracion, @IdParque);
+
+END;
+GO
+
+----------------------------------------
+-- MODIFICACION
+----------------------------------------
+
+/*
+EXEC SP_ModificacionActividad 1, NULL, NULL, 1500.50, 40, NULL
+SELECT * FROM Turismo.Actividad
+
+DROP PROCEDURE SP_ModificacionActividad
+*/
+
+CREATE OR ALTER PROCEDURE SP_ModificacionActividad
+    @IdActividad INT,
+    @Nombre VARCHAR(50) = NULL,
+    @Tipo VARCHAR(9) = NULL,
+    @Costo DECIMAL(10,2) = NULL,
+    @CupoMaximo INT = NULL,
+    @Duracion INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Verficamos que la actividad exista
+    IF NOT EXISTS (SELECT 1 FROM Turismo.Actividad WHERE IdActividad = @IdActividad)
+    BEGIN
+        RAISERROR('La actividad que se quiere modificar no existe', 16, 1);
+        RETURN;
+    END
+
+    UPDATE Turismo.Actividad
+    SET Nombre     = ISNULL(@Nombre, Nombre),
+        Tipo       = ISNULL(@Tipo, Tipo),
+        Costo      = ISNULL(Costo, Costo),
+        CupoMaximo = ISNULL(@CupoMaximo, CupoMaximo),
+        Duracion   = ISNULL(@Duracion, Duracion)
+    WHERE IdActividad = @IdActividad;
+
+    PRINT 'Actividad actualizada correctamente.';
+END;
+GO
+
+----------------------------------------
+-- BAJA 
+----------------------------------------
+
+/*
+
+*/
+
+CREATE OR ALTER PROCEDURE SP_BajaActividad
+    @IdActividad INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Verificamos que exista la actividad
+    IF NOT EXISTS (SELECT 1 FROM Turismo.Actividad WHERE IdActividad = @IdActividad)
+    BEGIN
+        RAISERROR('La actividad que se quiere eliminar no existe.', 16, 1);
+        RETURN;
+    END
+
+    BEGIN TRY
+        DELETE FROM Turismo.Actividad WHERE IdActividad = @IdActividad;
+        PRINT 'La actividad se elimino correctamente.'
+    END TRY
+    BEGIN CATCH
+        RAISERROR('No se puede eliminar la actividad: tiene registros relacionados (parques, entradas, personal asignado, etc.).', 16, 1)
+    END CATCH
+END
+
+
+    
+
