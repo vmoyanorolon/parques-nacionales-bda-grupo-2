@@ -10,9 +10,11 @@ GO
 -- =============================================
 -- SP_AltaVenta
 -- =============================================
+
 /*
 DROP PROCEDURE SP_AltaVenta
 */
+
 CREATE OR ALTER PROCEDURE SP_AltaVenta
 	@IdVisitante INT,
 	@Fecha DATETIME = NULL,
@@ -21,7 +23,8 @@ CREATE OR ALTER PROCEDURE SP_AltaVenta
 	@IdVenta INT OUTPUT
 AS
 BEGIN
-	DECLARE @FechaReal DATETIME
+	SET NOCOUNT ON
+	SET XACT_ABORT ON
 
 	IF NOT EXISTS(SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
 	BEGIN
@@ -29,167 +32,215 @@ BEGIN
 		RETURN
 	END
 
-	SELECT @FechaReal = ISNULL(@Fecha, GETDATE())
+	DECLARE @FechaReal DATETIME = ISNULL(@Fecha, GETDATE())
+	DECLARE @TranPropia BIT = 0
 
-	BEGIN TRANSACTION
+	IF @@TRANCOUNT = 0
+	BEGIN
+		BEGIN TRANSACTION
+		SET @TranPropia = 1
+	END
+	ELSE
+		SAVE TRANSACTION SP_AltaVenta
+
 	BEGIN TRY
-		INSERT INTO Ventas.Venta(IdVisitante,Monto,Fecha,MetodoDePago,PuntoDeVenta)
-		VALUES(@IdVisitante,0,@FechaReal,@MetodoDePago,@PuntoDeVenta)
-		SELECT @IdVenta = SCOPE_IDENTITY()
+		INSERT INTO Ventas.Venta(IdVisitante, Monto, Fecha, MetodoDePago, PuntoDeVenta)
+		VALUES(@IdVisitante, 0, @FechaReal, @MetodoDePago, @PuntoDeVenta)
+		SELECT @IdVenta = SCOPE_IDENTITY() -- ultimo identity del scope actual
 
-		COMMIT TRANSACTION
-		PRINT 'La venta ' + CAST(@IdVenta AS VARCHAR) + ' fue dada de alta con éxito'
-
+		IF @TranPropia = 1
+			COMMIT TRANSACTION
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		IF @TranPropia = 1 AND @@TRANCOUNT > 0
+			ROLLBACK TRANSACTION
+		ELSE IF XACT_STATE() = 1 -- solo si existe (no es 0) y se pude salvar (no es -1)
+			ROLLBACK TRANSACTION SP_AltaVenta
+		;THROW -- progago error
 	END CATCH
 END
 GO
 
 -- =============================================
--- SP_AltaLineaDeEntradaActividad
+-- SP_AltaLineasDeEntradaActividad (plural)
 -- =============================================
+
 /*
 DROP PROCEDURE SP_AltaLineaDeEntradaActividad
 */
-CREATE OR ALTER PROCEDURE SP_AltaLineaDeEntradaActividad
+
+CREATE OR ALTER PROCEDURE SP_AltaLineasDeEntradaActividad
 	@IdVenta INT,
-	@IdEntradaActividad INT,
-	@Cantidad TINYINT
+	@Lineas Ventas.TVP_LineaActividad READONLY,
+	@Factor DECIMAL(10,4) = 1.0 -- descuento enviado por padre (llamador)
 AS
 BEGIN
-	DECLARE @IdLineaDeEntradaActividad INT
-	DECLARE @PrecioUnitario DECIMAL(10,2)
-	DECLARE @NumeroDeItem TINYINT
-	DECLARE @CantidadMaxima INT
-	DECLARE @CantidadOcupada INT
+	SET NOCOUNT ON
+	SET XACT_ABORT ON
 
-	IF NOT EXISTS(
-		SELECT IdVenta FROM Ventas.Venta WHERE IdVenta = @IdVenta
-	)
+	IF NOT EXISTS(SELECT 1 FROM Ventas.Venta WHERE IdVenta = @IdVenta)
 	BEGIN
 		RAISERROR('La venta indicada no existe',16,1)
 		RETURN
 	END
 
-	IF NOT EXISTS(
-		SELECT @IdEntradaActividad FROM Turismo.EntradaActividad WHERE IdEntradaActividad = @IdEntradaActividad
+	IF NOT EXISTS(SELECT 1 FROM @Lineas) RETURN
+
+	IF EXISTS(SELECT 1 FROM @Lineas WHERE Cantidad <= 0)
+	BEGIN
+		RAISERROR('Hay líneas de actividad con cantidad menor o igual a cero',16,1)
+		RETURN
+	END
+
+	-- Existencia de las entradas
+	IF EXISTS(
+		SELECT 1 FROM @Lineas l
+		WHERE NOT EXISTS(SELECT 1 FROM Turismo.EntradaActividad ea WHERE ea.IdEntradaActividad = l.IdEntradaActividad))
+	BEGIN
+		RAISERROR('Alguna entrada de actividad indicada no existe',16,1)
+		RETURN
+	END
+
+	-- Validación de cupo
+	IF EXISTS(
+		SELECT 1
+		FROM (
+			-- lo que solicitamos en este TVP
+			SELECT t.IdTurno, a.CupoMaximo, SUM(l.Cantidad) AS CantSolicitada
+			FROM @Lineas l
+			INNER JOIN Turismo.EntradaActividad ea ON ea.IdEntradaActividad = l.IdEntradaActividad
+			INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
+			INNER JOIN Turismo.Actividad a ON a.IdActividad = t.IdActividad
+			GROUP BY t.IdTurno, a.CupoMaximo
+		) sol
+		OUTER APPLY (
+			-- lo ya vendido del turno en particular (todas sus entradas)
+			SELECT ISNULL(SUM(l2.Cantidad),0) AS Ocupada
+			FROM Ventas.LineaDeEntradaActividad l2
+			INNER JOIN Turismo.EntradaActividad ea2 ON ea2.IdEntradaActividad = l2.IdEntradaActividad
+			WHERE ea2.IdTurno = sol.IdTurno
+		) oc
+		WHERE sol.CantSolicitada + oc.Ocupada > sol.CupoMaximo
 	)
 	BEGIN
-		RAISERROR('La entrada a la actividad indicada no existe',16,1)
+		RAISERROR('Algún turno supera el cupo máximo de la actividad',16,1)
 		RETURN
 	END
 
-	-- Me traigo el cupo máximo de la actividad, su costo y la cantidad que ya se ocupó
-	SELECT	@CantidadMaxima = a.CupoMaximo,
-			@CantidadOcupada = ISNULL(SUM(l.Cantidad), 0),
-			@PrecioUnitario = t.Costo 
-	FROM Turismo.EntradaActividad ea
-	INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
-	INNER JOIN Turismo.Actividad a ON a.IdActividad = t.IdActividad
-	LEFT JOIN Ventas.LineaDeEntradaActividad l ON l.IdEntradaActividad = ea.IdEntradaActividad
-	WHERE ea.IdEntradaActividad = @IdEntradaActividad
-	GROUP BY a.CupoMaximo, t.Costo
-
-	IF @Cantidad + @CantidadOcupada > @CantidadMaxima
-	BEGIN
-		RAISERROR('La cantidad indicada supera la cantidad de cupos disponibles',16,1)
-		RETURN
-	END
-
-	-- Busco el mayor número de item existente y le sumo 1 para obtener el número de item de esta línea
-	SELECT @NumeroDeItem = ISNULL(MAX(NumeroDeItem), 0) + 1
-	FROM (
-		SELECT NumeroDeItem FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @IdVenta
-		UNION ALL
-		SELECT NumeroDeItem FROM Ventas.LineaDeEntradaParque WHERE IdVenta = @IdVenta
-	) AS LineasCombinadas
-
-	BEGIN TRANSACTION
+	SAVE TRANSACTION SP_LineasActividad
 	BEGIN TRY
+		DECLARE @MaxItem INT = (
+			SELECT ISNULL(MAX(NumeroDeItem), 0)
+			FROM (
+				SELECT NumeroDeItem FROM Ventas.LineaDeEntradaParque WHERE IdVenta = @IdVenta
+				UNION ALL
+				SELECT NumeroDeItem FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @IdVenta
+			) AS Comb
+		)
+
 		INSERT INTO Ventas.LineaDeEntradaActividad(IdEntradaActividad, IdVenta, PrecioUnitario, Cantidad, NumeroDeItem)
-		VALUES(@IdEntradaActividad, @IdVenta, @PrecioUnitario, @Cantidad, @NumeroDeItem)
-		SELECT @IdLineaDeEntradaActividad = SCOPE_IDENTITY()
+		SELECT
+			l.IdEntradaActividad,
+			@IdVenta,
+			t.Costo * @Factor,
+			l.Cantidad,
+			@MaxItem + ROW_NUMBER() OVER (ORDER BY l.IdEntradaActividad) -- + row_number en vez de + 1 por ser TVP
+		FROM @Lineas l
+		INNER JOIN Turismo.EntradaActividad ea ON ea.IdEntradaActividad = l.IdEntradaActividad
+		INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
 
 		UPDATE Ventas.Venta
-		SET Monto = Monto + (@PrecioUnitario * @Cantidad)
+		SET Monto = Monto + ISNULL((
+			SELECT SUM(t.Costo * @Factor * l.Cantidad)
+			FROM @Lineas l
+			INNER JOIN Turismo.EntradaActividad ea ON ea.IdEntradaActividad = l.IdEntradaActividad
+			INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
+		), 0)
 		WHERE IdVenta = @IdVenta
-
-		COMMIT TRANSACTION
-		PRINT 'La línea de entrada a actividad ' + CAST(@IdLineaDeEntradaActividad AS VARCHAR) + ' fue agregada con éxito'
-
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		IF XACT_STATE() = 1
+			ROLLBACK TRANSACTION SP_LineasActividad
+		;THROW
 	END CATCH
 END
 GO
 
 -- =============================================
--- SP_AltaLineaDeEntradaParque
+-- SP_AltaLineasDeEntradaParque
 -- =============================================
+
 /*
 DROP PROCEDURE SP_AltaLineaDeEntradaParque
 */
-CREATE OR ALTER PROCEDURE SP_AltaLineaDeEntradaParque
+
+CREATE OR ALTER PROCEDURE SP_AltaLineasDeEntradaParque
 	@IdVenta INT,
-	@IdEntradaParque INT,
-	@Cantidad TINYINT
+	@Lineas Ventas.TVP_LineaParque READONLY,
+	@Factor DECIMAL(10,4) = 1.0
 AS
 BEGIN
-	DECLARE @IdLineaDeEntradaParque INT
-	DECLARE @PrecioUnitario DECIMAL(10,2)
-	DECLARE @NumeroDeItem TINYINT
+	SET NOCOUNT ON
+	SET XACT_ABORT ON
 
-	IF NOT EXISTS(
-		SELECT IdVenta FROM Ventas.Venta WHERE IdVenta = @IdVenta
-	)
+	IF NOT EXISTS(SELECT 1 FROM Ventas.Venta WHERE IdVenta = @IdVenta)
 	BEGIN
 		RAISERROR('La venta indicada no existe',16,1)
 		RETURN
 	END
 
-	IF NOT EXISTS(
-		SELECT @IdEntradaParque FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque
-	)
+	IF NOT EXISTS(SELECT 1 FROM @Lineas) RETURN
+
+	-- Cantidades válidas
+	IF EXISTS(SELECT 1 FROM @Lineas WHERE Cantidad <= 0)
 	BEGIN
-		RAISERROR('La entrada al parque indicado no existe',16,1)
+		RAISERROR('Hay líneas de parque con cantidad menor o igual a cero',16,1)
 		RETURN
 	END
 
-	-- Me traigo el costo de la entrada al parque
-	SELECT	@PrecioUnitario = Costo 
-	FROM Turismo.EntradaParque
-	WHERE IdEntradaParque = @IdEntradaParque
+	-- Existencia de todas las entradas referenciadas
+	IF EXISTS(
+		SELECT 1 FROM @Lineas l
+		WHERE NOT EXISTS(SELECT 1 FROM Turismo.EntradaParque ep WHERE ep.IdEntradaParque = l.IdEntradaParque))
+	BEGIN
+		RAISERROR('Alguna entrada de parque indicada no existe',16,1)
+		RETURN
+	END
 
-	-- Busco el mayor número de item existente y le sumo 1 para obtener el número de item de esta línea
-	SELECT @NumeroDeItem = ISNULL(MAX(NumeroDeItem), 0) + 1
-	FROM (
-		SELECT NumeroDeItem FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @IdVenta
-		UNION ALL
-		SELECT NumeroDeItem FROM Ventas.LineaDeEntradaParque WHERE IdVenta = @IdVenta
-	) AS LineasCombinadas
-
-	BEGIN TRANSACTION
+	SAVE TRANSACTION SP_LineasParque
 	BEGIN TRY
+		DECLARE @MaxItem INT = (
+			SELECT ISNULL(MAX(NumeroDeItem), 0)
+			FROM (
+				SELECT NumeroDeItem FROM Ventas.LineaDeEntradaParque WHERE IdVenta = @IdVenta
+				UNION ALL
+				SELECT NumeroDeItem FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @IdVenta
+			) AS Comb
+		)
+
 		INSERT INTO Ventas.LineaDeEntradaParque(IdEntradaParque, IdVenta, PrecioUnitario, Cantidad, NumeroDeItem)
-		VALUES(@IdEntradaParque, @IdVenta, @PrecioUnitario, @Cantidad, @NumeroDeItem)
-		SELECT @IdLineaDeEntradaParque = SCOPE_IDENTITY()
+		SELECT
+			l.IdEntradaParque,
+			@IdVenta,
+			ep.Costo * @Factor,
+			l.Cantidad,
+			@MaxItem + ROW_NUMBER() OVER (ORDER BY l.IdEntradaParque)
+		FROM @Lineas l
+		INNER JOIN Turismo.EntradaParque ep ON ep.IdEntradaParque = l.IdEntradaParque
 
+		-- Acumulo el monto con los subtotales recién insertados
 		UPDATE Ventas.Venta
-		SET Monto = Monto + (@PrecioUnitario * @Cantidad)
+		SET Monto = Monto + ISNULL((
+			SELECT SUM(ep.Costo * @Factor * l.Cantidad)
+			FROM @Lineas l
+			INNER JOIN Turismo.EntradaParque ep ON ep.IdEntradaParque = l.IdEntradaParque
+		), 0)
 		WHERE IdVenta = @IdVenta
-
-		COMMIT TRANSACTION
-		PRINT 'La línea de entrada a parque ' + CAST(@IdLineaDeEntradaParque AS VARCHAR) + ' fue agregada con éxito'
-
 	END TRY
 	BEGIN CATCH
-		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		IF XACT_STATE() = 1
+			ROLLBACK TRANSACTION SP_LineasParque
+		;THROW
 	END CATCH
 END
 GO
