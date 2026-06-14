@@ -244,3 +244,68 @@ BEGIN
 	END CATCH
 END
 GO
+
+-- ==========================================================================================
+-- LOGICA DE NEGOCIO
+-- ==========================================================================================
+
+-- =============================================
+-- SP_RegistrarVentaEntradaMasiva
+-- Abre UNA transacción, calcula el descuento y delega creacion a los SPs.
+-- =============================================
+
+/*
+DROP PROCEDURE SP_RegistrarVentaEntradaMasiva
+*/
+
+CREATE OR ALTER PROCEDURE SP_RegistrarVentaEntradaMasiva
+	@IdVisitante INT,
+	@MetodoDePago VARCHAR(20),
+	@PuntoDeVenta VARCHAR(20),
+	@LineasParque Ventas.TVP_LineaParque READONLY,
+	@LineasActividad Ventas.TVP_LineaActividad READONLY,
+	@Fecha DATETIME = NULL,
+	@IdVenta INT OUTPUT
+AS
+BEGIN
+	SET NOCOUNT ON
+	SET XACT_ABORT ON
+
+	IF NOT EXISTS(SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
+	BEGIN
+		RAISERROR('El ID de visitante indicado no existe',16,1)
+		RETURN
+	END
+
+	-- Al menos una válida
+	IF NOT EXISTS(SELECT 1 FROM @LineasParque)
+	   AND NOT EXISTS(SELECT 1 FROM @LineasActividad)
+	BEGIN
+		RAISERROR('La venta debe incluir al menos una línea de entrada',16,1)
+		RETURN
+	END
+
+	-- Descuento del tipo de visitante (0 si no tiene)
+	DECLARE @Descuento TINYINT
+	SELECT @Descuento = ISNULL(tv.Descuento, 0)
+	FROM Turismo.Visitante v
+	LEFT JOIN Turismo.TipoVisitante tv ON tv.IdTipoVisitante = v.IdTipoVisitante
+	WHERE v.IdVisitante = @IdVisitante
+
+	DECLARE @Factor DECIMAL(10,4) = 1.0 - (@Descuento / 100.0)
+
+	BEGIN TRANSACTION
+	BEGIN TRY
+		EXEC SP_AltaVenta @IdVisitante, @Fecha, @MetodoDePago, @PuntoDeVenta, @IdVenta = @IdVenta OUTPUT
+		EXEC SP_AltaLineasDeEntradaParque @IdVenta, @LineasParque, @Factor
+		EXEC SP_AltaLineasDeEntradaActividad @IdVenta, @LineasActividad, @Factor
+
+		COMMIT TRANSACTION
+		PRINT 'La venta ' + CAST(@IdVenta AS VARCHAR) + ' fue registrada con éxito (descuento ' + CAST(@Descuento AS VARCHAR) + '%)'
+	END TRY
+	BEGIN CATCH
+		IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+		;THROW
+	END CATCH
+END
+GO
