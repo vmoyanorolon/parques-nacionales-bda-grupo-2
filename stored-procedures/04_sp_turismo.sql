@@ -436,8 +436,6 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_AltaActividad 'Senderismo', 'Tour', 20, 1;
-SELECT * FROM Turismo.Actividad
 DROP PROCEDURE SP_AltaActividad
 */
 
@@ -476,9 +474,6 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_ModificacionActividad 1, NULL, NULL, 1500.50, 40, NULL
-SELECT * FROM Turismo.Actividad
-
 DROP PROCEDURE SP_ModificacionActividad
 */
 
@@ -521,9 +516,6 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_BajaActividad 1
-SELECT * FROM Turismo.Actividad
-
 DROP PROCEDURE SP_BajaActividad
 */
 
@@ -557,7 +549,7 @@ GO
 -- CREACION 
 ----------------------------------------
 
-CREATE PROCEDURE SP_AltaEntradaParque
+CREATE OR ALTER PROCEDURE SP_AltaEntradaParque
     @Costo DECIMAL(10,2),
     @FechaAcceso DATE,
     @IdParque INT
@@ -634,13 +626,116 @@ BEGIN
     END
 
     BEGIN TRY
-        DELETE FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
+        DELETE FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque;
         PRINT 'la entrada se elimino correctamente.'
     END TRY
     BEGIN CATCH
-        RAISERROR('No se puede eliminar la entrada: tiene lineas de entrada a parque asociadas.', 16, 1);
+        RAISERROR('No se puede eliminar la entrada al parque: tiene lineas de entrada a parque asociadas.', 16, 1);
     END CATCH
 END;
 GO
 
+--------------------------------------------------------------------------------
+-- EntradaActividad
+--------------------------------------------------------------------------------
 
+----------------------------------------
+-- CREACION 
+----------------------------------------
+
+CREATE OR ALTER PROCEDURE SP_AltaEntradaActividad
+    @fechaAcceso DATE,
+    @IdTurno INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Validamos si existe el turno
+    IF NOT EXISTS (SELECT 1 FROM Turismo.Turno WHERE IdTurno = @IdTurno)
+    BEGIN
+        RAISERROR('El turno con Id %d no existe', 16, 1, @IdTurno);
+        RETURN;
+    END
+
+    --Validamos que el dia de la fecha de acceso coincida con el dia del turno
+    IF DATEPART(WEEKDAY, @fechaAcceso) <> (SELECT DiaDeSemana FROM Turismo.Turno WHERE IdTurno = @IdTurno)
+    BEGIN
+        RAISERROR('El dia de la entrada a la actividad no coincide con el dia del turno asociado.', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Turismo.EntradaActividad (FechaAcceso, IdTurno)
+    VALUES (@fechaAcceso, @IdTurno);
+
+    PRINT'La entrada a actividad isertada correctamente.'
+END;
+GO
+
+----------------------------------------
+-- MODIFICACION
+----------------------------------------
+
+CREATE OR ALTER PROCEDURE SP_ModificacionEntradaActividad
+    @IdEntradaActividad INT,
+    @IdTurno INT
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    --Validamos que la EntradaActividad exista
+    IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaActividad WHERE IdEntradaActividad = @IdEntradaActividad)
+    BEGIN
+        RAISERROR('El id %d de la entrada a la actividad no existe', 16, 1, @IdEntradaActividad);
+        RETURN;
+    END
+
+    --Validamos que el turno ingresado exista
+    IF NOT EXISTS (SELECT 1 FROM Turismo.Turno WHERE IdTurno = @IdTurno)
+    BEGIN
+        RAISERROR('El id %d del turno no existe', 16, 1, @IdTurno);
+        RETURN;
+    END
+
+    --Validamos que al turno que se quiere cambiar sea para el mismo dia que la fechaAcceso de esa entrada a la actividad
+    IF (SELECT DATEPART(WEEKDAY, FechaAcceso) FROM Turismo.EntradaActividad WHERE IdEntradaActividad = @IdEntradaActividad) 
+       <> (SELECT DiaDeSemana FROM Turismo.Turno WHERE IdTurno = @IdTurno)
+    BEGIN
+        RAISERROR('La fecha del nuevo IdTurno %d es distinta a la fecha asociada a esta EntradaActividad %d', 16, 1, @IdTurno, @IdEntradaActividad);
+        RETURN;
+    END
+    
+    UPDATE Turismo.EntradaActividad
+    SET IdTurno = @IdTurno
+    WHERE IdEntradaActividad = @IdEntradaActividad
+
+    PRINT'El turno se actualizo correctamente.'
+END;
+GO
+
+----------------------------------------
+-- BAJA 
+----------------------------------------
+
+CREATE OR ALTER PROCEDURE SP_BajaEntradaActividad
+    @IdEntradaActividad INT
+AS
+BEGIN
+    SET NOCOUNT ON
+    
+    --Verificamos que exista la entrada
+    IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaActividad WHERE IdEntradaActividad = @IdEntradaActividad)
+    BEGIN
+        RAISERROR('El id %d de entrada a la actividad no existe', 16, 1, @IdEntradaActividad);
+        RETURN;
+    END
+
+    BEGIN TRY
+        DELETE FROM Turismo.EntradaActividad WHERE IdEntradaActividad = @IdEntradaActividad;
+        PRINT'La entrada a la actividad fue eliminada correctamente.'
+    END TRY
+    BEGIN CATCH
+        RAISERROR('No se puede eliminar la entrada a la actividad: tiene lineas de entrada a actividad asociadas.', 16, 1);
+    END CATCH
+
+END;
+GO
