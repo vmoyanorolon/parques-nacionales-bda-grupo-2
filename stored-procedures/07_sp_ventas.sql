@@ -26,10 +26,15 @@ BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	IF NOT EXISTS(SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
+		SET @errores += '- El ID de visitante indicado no existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El ID de visitante indicado no existe',16,1)
-		RETURN
+		SET @errores = 'No se pudo dar de alta la venta:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	DECLARE @FechaReal DATETIME = ISNULL(@Fecha, GETDATE())
@@ -75,28 +80,21 @@ BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT ON
 
-	IF NOT EXISTS(SELECT 1 FROM Ventas.Venta WHERE IdVenta = @IdVenta)
-	BEGIN
-		RAISERROR('La venta indicada no existe',16,1)
-		RETURN
-	END
+	DECLARE @errores VARCHAR(2048) = ''
 
 	IF NOT EXISTS(SELECT 1 FROM @Lineas) RETURN
 
+	IF NOT EXISTS(SELECT 1 FROM Ventas.Venta WHERE IdVenta = @IdVenta)
+		SET @errores += '- La venta indicada no existe.' + CHAR(13)
+
 	IF EXISTS(SELECT 1 FROM @Lineas WHERE Cantidad <= 0)
-	BEGIN
-		RAISERROR('Hay líneas de actividad con cantidad menor o igual a cero',16,1)
-		RETURN
-	END
+		SET @errores += '- Hay líneas de actividad con cantidad menor o igual a cero.' + CHAR(13)
 
 	-- Existencia de las actividades
 	IF EXISTS(
 		SELECT 1 FROM @Lineas l
 		WHERE NOT EXISTS(SELECT 1 FROM Turismo.Actividad a WHERE a.IdActividad = l.IdActividad))
-	BEGIN
-		RAISERROR('Alguna actividad indicada no existe',16,1)
-		RETURN
-	END
+		SET @errores += '- Alguna actividad indicada no existe.' + CHAR(13)
 
 	-- Validación de cupo GLOBAL por actividad:
 	-- (lo solicitado en este TVP) + (lo ya vendido de esa actividad) <= CupoMaximo
@@ -115,9 +113,12 @@ BEGIN
 		) oc
 		WHERE sol.CantSolicitada + oc.Ocupada > a.CupoMaximo
 	)
+		SET @errores += '- Alguna actividad supera la cantidad de cupos disponibles.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('Alguna actividad supera la cantidad de cupos disponibles',16,1)
-		RETURN
+		SET @errores = 'No se pudieron registrar las líneas de actividad:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	SAVE TRANSACTION SP_LineasActividad
@@ -174,28 +175,27 @@ BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT ON
 
-	IF NOT EXISTS(SELECT 1 FROM Ventas.Venta WHERE IdVenta = @IdVenta)
-	BEGIN
-		RAISERROR('La venta indicada no existe',16,1)
-		RETURN
-	END
+	DECLARE @errores VARCHAR(2048) = ''
 
 	IF NOT EXISTS(SELECT 1 FROM @Lineas) RETURN
 
+	IF NOT EXISTS(SELECT 1 FROM Ventas.Venta WHERE IdVenta = @IdVenta)
+		SET @errores += '- La venta indicada no existe.' + CHAR(13)
+
 	-- Cantidades válidas
 	IF EXISTS(SELECT 1 FROM @Lineas WHERE Cantidad <= 0)
-	BEGIN
-		RAISERROR('Hay líneas de parque con cantidad menor o igual a cero',16,1)
-		RETURN
-	END
+		SET @errores += '- Hay líneas de parque con cantidad menor o igual a cero.' + CHAR(13)
 
 	-- Existencia de todas las entradas referenciadas
 	IF EXISTS(
 		SELECT 1 FROM @Lineas l
 		WHERE NOT EXISTS(SELECT 1 FROM Turismo.EntradaParque ep WHERE ep.IdEntradaParque = l.IdEntradaParque))
+		SET @errores += '- Alguna entrada de parque indicada no existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('Alguna entrada de parque indicada no existe',16,1)
-		RETURN
+		SET @errores = 'No se pudieron registrar las líneas de parque:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	SAVE TRANSACTION SP_LineasParque
