@@ -28,18 +28,20 @@ BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT ON
 
-	IF NOT EXISTS(SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
-	BEGIN
-		RAISERROR('El ID de visitante indicado no existe',16,1)
-		RETURN
-	END
+	DECLARE @errores VARCHAR(2048) = ''
 
-	-- Al menos una válida
+	IF NOT EXISTS(SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
+		SET @errores += '- El ID de visitante indicado no existe.' + CHAR(13)
+
+	-- Al menos una línea válida
 	IF NOT EXISTS(SELECT 1 FROM @LineasParque)
 	   AND NOT EXISTS(SELECT 1 FROM @LineasActividad)
+		SET @errores += '- La venta debe incluir al menos una línea de entrada.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('La venta debe incluir al menos una línea de entrada',16,1)
-		RETURN
+		SET @errores = 'No se pudo registrar la venta:' + CHAR(13) + @errores
+		THROW 50000, @errores, 1
 	END
 
 	-- Descuento del tipo de visitante (0 si no tiene)
@@ -84,61 +86,49 @@ BEGIN
 
     IF @FechaInicio IS NULL SET @FechaInicio = CAST(GETDATE() AS DATE);
 
-    BEGIN TRY
-        -- Existencia de guía
-        IF NOT EXISTS (SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia)
-        BEGIN
-            RAISERROR('El guía indicado no existe.', 16, 1);
-            RETURN;
-        END
+    DECLARE @errores VARCHAR(2048) = '';
+    DECLARE @Tipo VARCHAR(9), @IdParqueActividad INT;
 
-		IF @DiasVigentes <= 0
-        BEGIN
-            RAISERROR('Los días vigentes deben ser mayores a 0.', 16, 1);
-            RETURN;
-        END
+    SELECT @Tipo = Tipo, @IdParqueActividad = IdParque
+    FROM Turismo.Actividad
+    WHERE IdActividad = @IdActividad;
 
-        -- Existencia y tipo de actividad
-        DECLARE @Tipo VARCHAR(9), @IdParqueActividad INT;
+    -- Validaciones independientes (se pueden acumular)
+    IF NOT EXISTS (SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia)
+        SET @errores += '- El guía indicado no existe.' + CHAR(13);
 
-        SELECT @Tipo = Tipo, @IdParqueActividad = IdParque
-        FROM Turismo.Actividad
-        WHERE IdActividad = @IdActividad;
+    IF @DiasVigentes <= 0
+        SET @errores += '- Los días vigentes deben ser mayores a 0.' + CHAR(13);
 
-        IF @Tipo IS NULL
-        BEGIN
-            RAISERROR('La actividad indicada no existe.', 16, 1);
-            RETURN;
-        END
+    IF @Tipo IS NULL
+        SET @errores += '- La actividad indicada no existe.' + CHAR(13);
+    ELSE IF @Tipo <> 'Tour'
+        -- Solo tiene sentido evaluar el tipo si la actividad existe (si no, @Tipo es NULL)
+        SET @errores += '- La actividad no es de tipo Tour.' + CHAR(13);
 
-        IF @Tipo <> 'Tour'
-        BEGIN
-            RAISERROR('La actividad no es de tipo Tour.', 16, 1);
-            RETURN;
-        END
-
-        -- El guía debe trabajar en el parque de la actividad
-        IF NOT EXISTS (
+    -- El guía debe trabajar en el parque de la actividad.
+    -- Solo se puede evaluar si la actividad existe (necesitamos su parque).
+    IF @IdParqueActividad IS NOT NULL
+       AND NOT EXISTS (
             SELECT 1 FROM Personal.GuiaTrabajaEnParque
-            WHERE IdGuia = @IdGuia AND IdParque = @IdParqueActividad
-        )
-        BEGIN
-            RAISERROR('El guía no trabaja en el parque de esta actividad.', 16, 1);
-            RETURN;
-        END
+            WHERE IdGuia = @IdGuia AND IdParque = @IdParqueActividad)
+        SET @errores += '- El guía no trabaja en el parque de esta actividad.' + CHAR(13);
 
-        -- Evitar habilitación vigente duplicada para la misma actividad
-        IF EXISTS (
-            SELECT 1 FROM Personal.Habilitacion
-            WHERE IdGuia = @IdGuia
-              AND IdActividad = @IdActividad
-              AND DATEADD(DAY, DiasVigentes, FechaInicio) >= CAST(GETDATE() AS DATE)
-        )
-        BEGIN
-            RAISERROR('El guía ya tiene una habilitación vigente para esta actividad.', 16, 1);
-            RETURN;
-        END
+    -- Evitar habilitación vigente duplicada para la misma actividad
+    IF EXISTS (
+        SELECT 1 FROM Personal.Habilitacion
+        WHERE IdGuia = @IdGuia
+          AND IdActividad = @IdActividad
+          AND DATEADD(DAY, DiasVigentes, FechaInicio) >= CAST(GETDATE() AS DATE))
+        SET @errores += '- El guía ya tiene una habilitación vigente para esta actividad.' + CHAR(13);
 
+    IF @errores <> ''
+    BEGIN
+        SET @errores = 'No se pudo asignar el guía al tour:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1;
+    END
+
+    BEGIN TRY
         INSERT INTO Personal.Habilitacion (FechaInicio, DiasVigentes, IdGuia, IdActividad)
         VALUES (@FechaInicio, @DiasVigentes, @IdGuia, @IdActividad);
 
@@ -169,37 +159,35 @@ BEGIN
 
     IF @Fecha IS NULL SET @Fecha = GETDATE();
 
+    DECLARE @errores VARCHAR(2048) = '';
+    DECLARE @Estado VARCHAR(8), @Canon DECIMAL(10,2),
+            @FechaInicio DATE, @FechaFin DATE;
+
+    SELECT @Estado = EstadoConcesion,
+           @Canon = CanonMensual,
+           @FechaInicio = FechaInicio,
+           @FechaFin = FechaFin
+    FROM Concesiones.Concesion
+    WHERE IdConcesion = @IdConcesion;
+
+    -- Validaciones previas
+    IF @Estado IS NULL
+        SET @errores += '- La concesión indicada no existe.' + CHAR(13);
+    ELSE IF @Estado <> 'Activo'
+        -- Solo evaluable si la concesión existe
+        SET @errores += '- La concesión no está activa. No se puede registrar el pago.' + CHAR(13);
+
+    IF @Monto <= 0
+        SET @errores += '- El monto debe ser mayor a cero.' + CHAR(13);
+
+    IF @errores <> ''
+    BEGIN
+        SET @errores = 'No se pudo registrar el pago de la concesión:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1;
+    END
+
+    BEGIN TRANSACTION;
     BEGIN TRY
-        DECLARE @Estado VARCHAR(8), @Canon DECIMAL(10,2),
-                @FechaInicio DATE, @FechaFin DATE;
-
-        SELECT @Estado = EstadoConcesion,
-               @Canon = CanonMensual,
-               @FechaInicio = FechaInicio,
-               @FechaFin = FechaFin
-        FROM Concesiones.Concesion
-        WHERE IdConcesion = @IdConcesion;
-
-        IF @Estado IS NULL
-        BEGIN
-            RAISERROR('La concesión indicada no existe.', 16, 1);
-            RETURN;
-        END
-
-        IF @Estado <> 'Activo'
-        BEGIN
-            RAISERROR('La concesión no está activa. No se puede registrar el pago.', 16, 1);
-            RETURN;
-        END
-
-        IF @Monto <= 0
-        BEGIN
-            RAISERROR('El monto debe ser mayor a cero.', 16, 1);
-            RETURN;
-        END
-
-        BEGIN TRANSACTION;
-
         INSERT INTO Concesiones.PagoConcesion (IdConcesion, Fecha, Monto)
         VALUES (@IdConcesion, @Fecha, @Monto);
 
@@ -258,25 +246,26 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @errores VARCHAR(2048) = '';
+
+    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+        SET @errores += '- El parque indicado no existe.' + CHAR(13);
+
+    IF @NuevoCosto <= 0
+        SET @errores += '- El nuevo costo debe ser mayor a cero.' + CHAR(13);
+
+    -- Solo evaluable si el parque existe (si no, igual no tendría entradas)
+    IF EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+       AND NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdParque = @IdParque)
+        SET @errores += '- El parque no tiene entradas registradas para actualizar.' + CHAR(13);
+
+    IF @errores <> ''
+    BEGIN
+        SET @errores = 'No se pudo actualizar el precio de las entradas:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1;
+    END
+
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-        BEGIN
-            RAISERROR('El parque indicado no existe.', 16, 1);
-            RETURN;
-        END
-
-        IF @NuevoCosto <= 0
-        BEGIN
-            RAISERROR('El nuevo costo debe ser mayor a cero.', 16, 1);
-            RETURN;
-        END
-
-        IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdParque = @IdParque)
-        BEGIN
-            RAISERROR('El parque no tiene entradas registradas para actualizar.', 16, 1);
-            RETURN;
-        END
-
         UPDATE Turismo.EntradaParque
         SET Costo = @NuevoCosto
         WHERE IdParque = @IdParque;

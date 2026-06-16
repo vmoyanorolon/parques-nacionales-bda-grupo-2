@@ -21,6 +21,7 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 
+	DECLARE @errores VARCHAR(2048) = ''
 	DECLARE @FechaEgreso DATE = GETDATE()
 	DECLARE @FechaEgresoActual DATE
 	DECLARE @IdGuardaparque INT
@@ -29,17 +30,20 @@ BEGIN
 		   @FechaEgresoActual = FechaEgreso
 	FROM Personal.Asignacion
 	WHERE IdAsignacion = @IdAsignacion
-	
+
 	IF @IdGuardaparque IS NULL
 	BEGIN
-		RAISERROR ('La asignación referenciada no existe, no se hará ningún cambio',16,1)
-		RETURN
+		SET @errores = 'No se pudo modificar la asignación:' + CHAR(13) + '- La asignación referenciada no existe.' + CHAR(13);
+		THROW 50000, @errores, 1
 	END
 
 	IF @FechaEgresoActual IS NOT NULL
+		SET @errores += '- La asignación ya tiene fecha de egreso registrada.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR ('La asignación ya tiene fecha de egreso registrada, no se hará ningún cambio',16,1)
-		RETURN
+		SET @errores = 'No se pudo modificar la asignación:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	BEGIN TRANSACTION
@@ -79,6 +83,7 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
 	DECLARE @IdParqueActividad INT
 	DECLARE @IdNuevoParqueParaGuia INT
 	DECLARE @IdHabilitacion INT
@@ -89,27 +94,27 @@ BEGIN
 	WHERE IdActividad = @IdActividad
 
 	IF @IdParqueActividad IS NULL
+		SET @errores += '- La actividad indicada no existe.' + CHAR(13)
+
+	IF NOT EXISTS (SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia)
+		SET @errores += '- El guía indicado no existe.' + CHAR(13)
+
+	IF @DiasVigentes <= 0
+		SET @errores += '- Los días vigentes deben ser mayores a 0.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR ('La actividad no existe, no se dará de alta la habilitación',16,1)
-		RETURN
+		SET @errores = 'No se pudo dar de alta la habilitación:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
-	IF NOT EXISTS (
-	SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia
-	)
-	BEGIN
-		RAISERROR ('El guía no existe, no se dará de alta la habilitación',16,1)
-		RETURN
-	END
-	
-	-- Si el guia no trabaja en el parque en el que se ofrece la actividad, significa que
+	-- Si el guía no trabaja en el parque en el que se ofrece la actividad, significa que
 	-- es un nuevo parque para el guía y hay que registrarlo en Personal.GuiaTrabajaEnParque
-	
 	IF NOT EXISTS(
-	SELECT 1
-	FROM Personal.GuiaTrabajaEnParque
-	WHERE	IdGuia = @IdGuia AND
-			IdParque = @IdParqueActividad)
+		SELECT 1
+		FROM Personal.GuiaTrabajaEnParque
+		WHERE	IdGuia = @IdGuia AND
+				IdParque = @IdParqueActividad)
 	BEGIN
 		SELECT @IdNuevoParqueParaGuia = @IdParqueActividad
 	END
@@ -151,20 +156,22 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	IF NOT EXISTS(
 		SELECT 1
 		FROM Personal.Habilitacion
 		WHERE IdHabilitacion = @IdHabilitacion
 	)
-	BEGIN
-		RAISERROR ('La habilitación no existe, no se modificará la habilitación',16,1)
-		RETURN
-	END
+		SET @errores += '- La habilitación indicada no existe.' + CHAR(13)
 
 	IF @DiasVigentes <= 0
+		SET @errores += '- Los días vigentes deben ser mayores a 0.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR ('Los días vigentes deben ser mayores a 0, no se modificará la habilitación',16,1)
-		RETURN
+		SET @errores = 'No se pudo modificar la habilitación:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	BEGIN TRANSACTION
@@ -188,7 +195,7 @@ GO
 -- Dar de baja la habilitación de un guía para dar una actividad
 -- =============================================
 /*
-DROP SP_BajaHabilitacion
+DROP PROCEDURE SP_BajaHabilitacion
 */
 CREATE OR ALTER PROCEDURE SP_BajaHabilitacion
 	@IdHabilitacion INT
@@ -196,6 +203,7 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
 	DECLARE @IdActividad INT
 	DECLARE @IdGuia INT
 
@@ -204,16 +212,19 @@ BEGIN
 	WHERE IdHabilitacion = @IdHabilitacion
 
 	IF @IdActividad IS NULL
+		SET @errores += '- La habilitación indicada no existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR ('La habilitación no existe, no se hará ningún cambio',16,1)
-		RETURN
+		SET @errores = 'No se pudo dar de baja la habilitación:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	BEGIN TRANSACTION
 	BEGIN TRY
 		DELETE FROM Personal.Habilitacion WHERE IdHabilitacion = @IdHabilitacion
 		COMMIT TRANSACTION
-		PRINT 'La habilitación' + CAST(@IdHabilitacion AS VARCHAR) + 'fue eliminada con éxito'
+		PRINT 'La habilitación ' + CAST(@IdHabilitacion AS VARCHAR) + ' fue eliminada con éxito'
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
@@ -227,7 +238,7 @@ GO
 --------------------------------------------------------------------------------
 
 ----------------------------------------
--- CREACION 
+-- CREACION
 ----------------------------------------
 
 --DROP PROCEDURE SP_AltaGuia
@@ -245,18 +256,20 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Validamos si ya existe el numero de documento
 	IF EXISTS (SELECT 1 FROM Personal.Guia WHERE NumeroDocumento = @NumeroDocumento)
-	BEGIN
-		RAISERROR('El Guia con documento %s ya existe.', 16, 1, @NumeroDocumento);
-		RETURN;
-	END
+		SET @errores += '- El guía con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
 
 	--Validamos que no haya otro guia con el mismo correo
 	IF EXISTS (SELECT 1 FROM Personal.Guia WHERE CorreoGuia = @CorreoGuia)
+		SET @errores += '- El correo ' + @CorreoGuia + ' ya existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El correo %s ya existe.', 16, 1, @CorreoGuia);
-		RETURN;
+		SET @errores = 'No se pudo dar de alta el guía:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	INSERT INTO Personal.Guia (Telefono, CorreoGuia, NumeroDocumento, TipoDocumento, Edad, Apellido, Nombre, Titulo)
@@ -267,7 +280,7 @@ END;
 GO
 
 ----------------------------------------
--- MODIFICACION 
+-- MODIFICACION
 ----------------------------------------
 
 --DROP PROCEDURE SP_ModificacionGuia
@@ -286,18 +299,20 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Validamos que el guia exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia)
-	BEGIN
-		RAISERROR('El guia con id %d no existe', 16, 1, @IdGuia);
-		RETURN;
-	END
+		SET @errores += '- El guía con id ' + CAST(@IdGuia AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Validamos que el numero de documento nuevo no exista
 	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guia WHERE NumeroDocumento = @NumeroDocumento)
+		SET @errores += '- El guía con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guia con documento %s ya existe.', 16, 1, @NumeroDocumento);
-		RETURN;
+		SET @errores = 'No se pudo modificar el guía:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	UPDATE Personal.Guia
@@ -316,7 +331,7 @@ END;
 GO
 
 ----------------------------------------
--- BAJA 
+-- BAJA
 ----------------------------------------
 
 --DROP PROCEDURE SP_BajaGuia
@@ -327,11 +342,16 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Verficamos que el guia exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia)
+		SET @errores += '- El guía con id ' + CAST(@IdGuia AS VARCHAR) + ' no existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guia con id %d no existe.', 16, 1, @IdGuia);
-		RETURN;
+		SET @errores = 'No se pudo dar de baja el guía:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	BEGIN TRY
@@ -350,7 +370,7 @@ GO
 --------------------------------------------------------------------------------
 
 ----------------------------------------
--- CREACION 
+-- CREACION
 ----------------------------------------
 
 --DROP PROCEDURE SP_AltaGuiaTrabajaEnParque
@@ -362,25 +382,24 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Verificamos que el Guia exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia)
-	BEGIN
-		RAISERROR('El guia con id %d no existe.', 16, 1, @IdGuia);
-		RETURN;
-	END
+		SET @errores += '- El guía con id ' + CAST(@IdGuia AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Verificamos que el Parque exista
 	IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-	BEGIN
-		RAISERROR('El parque con id %d no existe.', 16, 1, @IdParque);
-		RETURN;
-	END
+		SET @errores += '- El parque con id ' + CAST(@IdParque AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Verificamos que no existe la combinacion IdGuia+IdParque
 	IF EXISTS (SELECT 1 FROM Personal.GuiaTrabajaEnParque WHERE IdGuia = @IdGuia AND IdParque = @IdParque)
+		SET @errores += '- El guía con id ' + CAST(@IdGuia AS VARCHAR) + ' ya trabaja en el parque con id ' + CAST(@IdParque AS VARCHAR) + '.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guia con id %d ya trabaja en el parque con id %d.', 16, 1, @IdGuia, @IdParque);
-		RETURN;
+		SET @errores = 'No se pudo registrar que el guía trabaja en el parque:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	INSERT INTO Personal.GuiaTrabajaEnParque (IdGuia, IdParque)
@@ -391,7 +410,7 @@ END;
 GO
 
 ----------------------------------------
--- BAJA 
+-- BAJA
 ----------------------------------------
 
 --DROP PROCEDURE SP_BajaGuiaTrabajaEnParque
@@ -403,26 +422,31 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Verificamos que el par IdGuia-IdParque exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.GuiaTrabajaEnParque WHERE IdGuia = @IdGuia AND IdParque = @IdParque)
+		SET @errores += '- No existe un guía con id ' + CAST(@IdGuia AS VARCHAR) + ' que trabaje en el parque con id ' + CAST(@IdParque AS VARCHAR) + '.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('No existe un guia con id %d que trabaje en el parque con id %d.', 16, 1, @IdGuia, @IdParque);
-		RETURN;
+		SET @errores = 'No se pudo eliminar el registro de guía trabaja en parque:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	--No hace falta hacer un TRY - CATCH ya que eliminar un registro en esta tabla no afecta en nada a otras
 	DELETE FROM Personal.GuiaTrabajaEnParque WHERE IdGuia = @IdGuia AND IdParque = @IdParque
-	
+
 	PRINT'Guia trabaja en Parque eliminado correctamente.'
 END;
 GO
 
 --------------------------------------------------------------------------------
--- Guardaparque 
+-- Guardaparque
 --------------------------------------------------------------------------------
 
 ----------------------------------------
--- CREACION 
+-- CREACION
 ----------------------------------------
 
 --DROP PROCEDURE SP_AltaGuardaparque
@@ -440,18 +464,20 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Validamos si ya existe el numero de documento
 	IF EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE NumeroDocumento = @NumeroDocumento)
-	BEGIN
-		RAISERROR('El guardaparque con documento %s ya existe.', 16, 1, @NumeroDocumento);
-		RETURN;
-	END
+		SET @errores += '- El guardaparque con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
 
 	--Validamos que no haya otro guardaparque con el mismo correo
 	IF EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE CorreoGuardaparque = @CorreoGuardaparque)
+		SET @errores += '- El guardaparque con correo ' + @CorreoGuardaparque + ' ya existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guardaparque con correo %s ya existe.', 16, 1, @CorreoGuardaparque);
-		RETURN;
+		SET @errores = 'No se pudo dar de alta el guardaparque:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	INSERT INTO Personal.Guardaparque (Telefono, CorreoGuardaparque, NumeroDocumento, TipoDocumento, Edad, Apellido, Nombre, Estado)
@@ -462,7 +488,7 @@ END;
 GO
 
 ----------------------------------------
--- MODIFICACION 
+-- MODIFICACION
 ----------------------------------------
 
 --DROP PROCEDURE SP_ModificacionGuardaparque
@@ -481,18 +507,20 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Validamos que el guardaparque exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE IdGuardaparque = @IdGuardaparque)
-	BEGIN
-		RAISERROR('El guardaparque con id %d no existe', 16, 1, @IdGuardaparque);
-		RETURN;
-	END
+		SET @errores += '- El guardaparque con id ' + CAST(@IdGuardaparque AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Validamos que el numero de documento nuevo no exista
 	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE NumeroDocumento = @NumeroDocumento)
+		SET @errores += '- El guardaparque con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guardaparque con documento %s ya existe.', 16, 1, @NumeroDocumento);
-		RETURN;
+		SET @errores = 'No se pudo modificar el guardaparque:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	UPDATE Personal.Guardaparque
@@ -511,7 +539,7 @@ END;
 GO
 
 ----------------------------------------
--- BAJA 
+-- BAJA
 ----------------------------------------
 
 --DROP PROCEDURE SP_BajaGuardaparque
@@ -522,11 +550,16 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Verficamos que el guardaparque exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE IdGuardaparque = @IdGuardaparque)
+		SET @errores += '- El guardaparque con id ' + CAST(@IdGuardaparque AS VARCHAR) + ' no existe.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guardaparque con id %d no existe.', 16, 1, @IdGuardaparque);
-		RETURN;
+		SET @errores = 'No se pudo dar de baja el guardaparque:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	BEGIN TRY
@@ -545,7 +578,7 @@ GO
 --------------------------------------------------------------------------------
 
 ----------------------------------------
--- CREACION 
+-- CREACION
 ----------------------------------------
 
 --DROP PROCEDURE SP_AltaAsignacion
@@ -560,26 +593,25 @@ AS
 BEGIN
 	SET NOCOUNT ON
 
+	DECLARE @errores VARCHAR(2048) = ''
+
 	--Verificamos que el parque exista
 	IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-	BEGIN
-		RAISERROR('El parque con id %d no existe.', 16, 1, @IdParque);
-		RETURN;
-	END
+		SET @errores += '- El parque con id ' + CAST(@IdParque AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Verificamos que el guardaparque exista
 	IF NOT EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE IdGuardaparque = @IdGuardaparque)
-	BEGIN
-		RAISERROR('El guardaparque con id %d no existe.', 16, 1, @IdGuardaparque);
-		RETURN;
-	END
+		SET @errores += '- El guardaparque con id ' + CAST(@IdGuardaparque AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Verificamos que el guardaparque no tenga una asignacion activa
-	IF EXISTS (SELECT 1 FROM Personal.Asignacion WHERE IdGuardaparque = @IdGuardaparque 
+	IF EXISTS (SELECT 1 FROM Personal.Asignacion WHERE IdGuardaparque = @IdGuardaparque
 				AND FechaEgreso IS NULL)
+		SET @errores += '- El guardaparque con id ' + CAST(@IdGuardaparque AS VARCHAR) + ' tiene una asignación activa. Para dar de alta esta asignación se debe asignar una fecha de egreso en la activa.' + CHAR(13)
+
+	IF @errores <> ''
 	BEGIN
-		RAISERROR('El guardaparque con id %d tiene una asignacion activa. Para dar de alta esta asignacion se debe asignar una fecha de egreso en la activa', 16, 1, @IdGuardaparque);
-		RETURN;
+		SET @errores = 'No se pudo dar de alta la asignación:' + CHAR(13) + @errores;
+		THROW 50000, @errores, 1
 	END
 
 	INSERT INTO Personal.Asignacion (FechaIngreso, FechaEgreso, Motivo, IdParque, IdGuardaparque)
