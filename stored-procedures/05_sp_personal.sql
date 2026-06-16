@@ -9,6 +9,7 @@ GO
 
 -- =============================================
 -- SP_ModificacionAsignacion
+-- Registrar fecha en la que el guardaparque dejó de trabajar en el parque
 -- =============================================
 /*
 DROP PROCEDURE SP_ModificacionAsignacion
@@ -31,13 +32,13 @@ BEGIN
 	
 	IF @IdGuardaparque IS NULL
 	BEGIN
-		RAISERROR ('La asignación referenciada no existe',16,1)
+		RAISERROR ('La asignación referenciada no existe, no se hará ningún cambio',16,1)
 		RETURN
 	END
 
 	IF @FechaEgresoActual IS NOT NULL
 	BEGIN
-		RAISERROR ('La asignación ya tiene fecha de egreso registrada',16,1)
+		RAISERROR ('La asignación ya tiene fecha de egreso registrada, no se hará ningún cambio',16,1)
 		RETURN
 	END
 
@@ -45,7 +46,7 @@ BEGIN
 	BEGIN TRY
 		UPDATE Personal.Asignacion
 		SET FechaEgreso = @FechaEgreso,
-			Motivo = @Motivo
+			Motivo = ISNULL(@Motivo, Motivo)
 		WHERE IdAsignacion = @IdAsignacion
 
 		UPDATE Personal.Guardaparque
@@ -65,6 +66,7 @@ GO
 
 -- =============================================
 -- SP_AltaHabilitacion
+-- Dar de alta a un guía para que pueda dar una actividad
 -- =============================================
 /*
 DROP PROCEDURE SP_AltaHabilitacion
@@ -88,7 +90,7 @@ BEGIN
 
 	IF @IdParqueActividad IS NULL
 	BEGIN
-		RAISERROR ('La actividad no existe',16,1)
+		RAISERROR ('La actividad no existe, no se dará de alta la habilitación',16,1)
 		RETURN
 	END
 
@@ -96,7 +98,7 @@ BEGIN
 	SELECT 1 FROM Personal.Guia WHERE IdGuia = @IdGuia
 	)
 	BEGIN
-		RAISERROR ('El guía no existe',16,1)
+		RAISERROR ('El guía no existe, no se dará de alta la habilitación',16,1)
 		RETURN
 	END
 	
@@ -137,6 +139,7 @@ GO
 
 -- =============================================
 -- SP_ModificacionHabilitacion
+-- Cambiar días de vigencia que tiene un guía para dar una actividad
 -- =============================================
 /*
 DROP PROCEDURE SP_ModificacionHabilitacion
@@ -154,13 +157,13 @@ BEGIN
 		WHERE IdHabilitacion = @IdHabilitacion
 	)
 	BEGIN
-		RAISERROR ('La habilitación no existe',16,1)
+		RAISERROR ('La habilitación no existe, no se modificará la habilitación',16,1)
 		RETURN
 	END
 
 	IF @DiasVigentes <= 0
 	BEGIN
-		RAISERROR ('Los días vigentes deben ser mayores a 0',16,1)
+		RAISERROR ('Los días vigentes deben ser mayores a 0, no se modificará la habilitación',16,1)
 		RETURN
 	END
 
@@ -182,6 +185,7 @@ GO
 
 -- =============================================
 -- SP_BajaHabilitacion
+-- Dar de baja la habilitación de un guía para dar una actividad
 -- =============================================
 /*
 DROP SP_BajaHabilitacion
@@ -201,7 +205,7 @@ BEGIN
 
 	IF @IdActividad IS NULL
 	BEGIN
-		RAISERROR ('La habilitación no existe',16,1)
+		RAISERROR ('La habilitación no existe, no se hará ningún cambio',16,1)
 		RETURN
 	END
 

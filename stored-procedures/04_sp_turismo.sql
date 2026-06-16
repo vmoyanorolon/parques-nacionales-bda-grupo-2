@@ -288,6 +288,7 @@ GO
 
 -- =============================================
 -- SP_AltaTurno
+-- Dar de alta un turno para una actividad
 -- =============================================
 /*
 DROP PROCEDURE SP_AltaTurno
@@ -310,7 +311,7 @@ BEGIN
         WHERE IdActividad = @IdActividad
     )
     BEGIN
-        RAISERROR('La actividad indicada no existe',16,1)
+        RAISERROR('La actividad indicada no existe, no se dará de alta ningún turno',16,1)
         RETURN
     END
 
@@ -334,6 +335,7 @@ GO
 
 -- =============================================
 -- SP_ModificacionTurno
+-- Cambiar el costo, la hora de inicio, la hora de fin o el día de semana de un turno para una actividad
 -- =============================================
 /*
 DROP PROCEDURE SP_ModificacionTurno
@@ -354,7 +356,7 @@ BEGIN
     WHERE IdTurno = @IdTurno
     )
     BEGIN
-        RAISERROR('El turno indicado no existe',16,1)
+        RAISERROR('El turno indicado no existe, no se hará ninguna modificación',16,1)
         RETURN
     END
 
@@ -382,6 +384,7 @@ BEGIN
 
 -- =============================================
 -- SP_BajaTurno
+-- Dar de baja un turno de una actividad
 -- =============================================
 /*
 DROP PROCEDURE SP_BajaTurno
@@ -398,7 +401,7 @@ BEGIN
         WHERE IdTurno = @IdTurno
     )
     BEGIN
-        RAISERROR('El turno indicado no existe', 16, 1)
+        RAISERROR('El turno indicado no existe, no se hará ningún cambio', 16, 1)
         RETURN
     END
 

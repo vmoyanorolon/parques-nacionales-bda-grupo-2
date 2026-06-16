@@ -9,6 +9,7 @@ GO
 
 -- =============================================
 -- SP_AltaOrganizacionConcesionaria
+-- Dar de alta una organización concesionaria
 -- =============================================
 /*
 DROP PROCEDURE SP_AltaOrganizacionConcesionaria
@@ -62,12 +63,12 @@ GO
 
 -- =============================================
 -- SP_ModificacionOrganizacionConcesionaria
+-- Modificar campos de una organización concesionaria
 -- =============================================
 /*
 DROP PROCEDURE SP_ModificacionOrganizacionConcesionaria
 */
 CREATE OR ALTER PROCEDURE SP_ModificacionOrganizacionConcesionaria
--- @VariableParametro TIPODATO
     @IdOrganizacionConcesionaria INT,
     @Cuit CHAR(11) = NULL,
 	@Nombre VARCHAR(50) = NULL,
@@ -133,6 +134,7 @@ GO
 
 -- =============================================
 -- SP_BajaOrganizacionConcesionaria
+-- Dar de baja una organización concesionaria
 -- =============================================
 /*
 DROP PROCEDURE SP_BajaOrganizacionConcesionaria
@@ -182,6 +184,7 @@ GO
 
 -- =============================================
 -- SP_AltaConcesion
+-- Dar de alta una concesión de un parque para una organización concesionaria
 -- =============================================
 /*
 DROP PROCEDURE SP_AltaConcesion
@@ -198,12 +201,18 @@ BEGIN
     
     DECLARE @IdConcesion INT
     DECLARE @EstadoConcesion VARCHAR(8) = 'Activo'
+    DECLARE @SuperficieParque DECIMAL(10,2)
+    DECLARE @SuperficieConcedidaTotal DECIMAL(10,2)
+    -- Según el Art. 12 de la Ley 22.351 (Régimen Legal de Parques Nacionales),
+    -- los asentamientos humanos no pueden superar el 10% de la superficie de cada Reserva.
+    -- Se aplica este criterio como límite máximo para el total de extensiones concedidas por parque.
+    DECLARE @PorcentajeMaximoPermitido DECIMAL(10,2) = 0.1
 
-    IF NOT EXISTS(
-        SELECT 1
-        FROM Parques.Parque
-        WHERE IdParque = @IdParque
-    )
+    SELECT @SuperficieParque = Superficie
+    FROM Parques.Parque
+    WHERE IdParque = @IdParque
+
+    IF @SuperficieParque IS NULL
     BEGIN
         RAISERROR('El parque ingresado no existe, no se dará de alta la concesión',16,1)
         RETURN
@@ -216,6 +225,17 @@ BEGIN
     )
     BEGIN
         RAISERROR('La organización concesionaria ingresada no existe, no se dará de alta la concesión',16,1)
+        RETURN
+    END
+
+    SELECT @SuperficieConcedidaTotal = ISNULL(SUM(ExtensionConcedida), 0)
+    FROM Concesiones.Concesion
+    WHERE IdParque = @IdParque
+    AND EstadoConcesion = 'Activo'
+
+    IF(@SuperficieConcedidaTotal + @ExtensionConcedida > @SuperficieParque * @PorcentajeMaximoPermitido)
+    BEGIN
+        RAISERROR('La extensión que se desea conceder supera el límite establecido por ley, no se dará de alta la concesión',16,1)
         RETURN
     END
 
@@ -241,6 +261,7 @@ GO
 
 -- =============================================
 -- SP_ModificacionConcesion
+-- Modificar el canon mensual o la extensión de una concesión
 -- =============================================
 /*
 DROP PROCEDURE SP_ModificacionConcesion
@@ -252,15 +273,44 @@ CREATE OR ALTER PROCEDURE SP_ModificacionConcesion
 AS
 BEGIN
     SET NOCOUNT ON
-    
-    IF NOT EXISTS(
-        SELECT 1
-        FROM Concesiones.Concesion
-        WHERE IdConcesion = @IdConcesion
-    )
+
+    DECLARE @IdParque INT
+    DECLARE @SuperficieParque DECIMAL(10,2)
+    DECLARE @SuperficieConcedidaTotal DECIMAL(10,2)
+    DECLARE @ExtensionConcedidaActual DECIMAL(10,2)
+    -- Según el Art. 12 de la Ley 22.351 (Régimen Legal de Parques Nacionales),
+    -- los asentamientos humanos no pueden superar el 10% de la superficie de cada Reserva.
+    -- Se aplica este criterio como límite máximo para el total de extensiones concedidas por parque.
+    DECLARE @PorcentajeMaximoPermitido DECIMAL(10,2) = 0.1
+
+    SELECT @IdParque = IdParque,
+           @ExtensionConcedidaActual = ExtensionConcedida
+    FROM Concesiones.Concesion
+    WHERE IdConcesion = @IdConcesion
+
+    IF @IdParque IS NULL
     BEGIN
         RAISERROR('La concesión indicada no existe, no se realizará ningún cambio',16,1)
         RETURN
+    END
+
+    IF @ExtensionConcedida IS NOT NULL
+    BEGIN
+        SELECT @SuperficieParque = Superficie
+        FROM Parques.Parque
+        WHERE IdParque = @IdParque
+
+        SELECT @SuperficieConcedidaTotal = ISNULL(SUM(ExtensionConcedida), 0)
+        FROM Concesiones.Concesion
+        WHERE IdParque = @IdParque
+        AND EstadoConcesion = 'Activo'
+        AND IdConcesion != @IdConcesion
+
+        IF @SuperficieConcedidaTotal + @ExtensionConcedida > @SuperficieParque * @PorcentajeMaximoPermitido
+        BEGIN
+            RAISERROR('La extensión que se desea conceder supera el límite establecido por ley, no se realizará ningún cambio',16,1)
+            RETURN
+        END
     END
 
     BEGIN TRANSACTION
@@ -278,13 +328,14 @@ BEGIN
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+        PRINT 'Error: ' + ERROR_MESSAGE()
     END CATCH
 END
 GO
 
 -- =============================================
 -- SP_BajaConcesion
+-- Dar de baja una concesión
 -- =============================================
 /*
 DROP PROCEDURE SP_BajaConcesion
