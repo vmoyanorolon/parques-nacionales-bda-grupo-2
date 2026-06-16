@@ -62,17 +62,14 @@ END
 GO
 
 -- =============================================
--- SP_AltaLineasDeEntradaActividad (plural)
+-- SP_AltaLineasDeEntradaActividad (plural) — versión NUEVO DER
+-- La línea apunta directo a Actividad. Precio = Actividad.Costo.
+-- Cupo = global de la actividad (CupoMaximo vs. lo ya vendido de esa actividad).
 -- =============================================
-
-/*
-DROP PROCEDURE SP_AltaLineaDeEntradaActividad
-*/
-
 CREATE OR ALTER PROCEDURE SP_AltaLineasDeEntradaActividad
 	@IdVenta INT,
 	@Lineas Ventas.TVP_LineaActividad READONLY,
-	@Factor DECIMAL(10,4) = 1.0 -- descuento enviado por padre (llamador)
+	@Factor DECIMAL(10,4) = 1.0
 AS
 BEGIN
 	SET NOCOUNT ON
@@ -92,38 +89,34 @@ BEGIN
 		RETURN
 	END
 
-	-- Existencia de las entradas
+	-- Existencia de las actividades
 	IF EXISTS(
 		SELECT 1 FROM @Lineas l
-		WHERE NOT EXISTS(SELECT 1 FROM Turismo.EntradaActividad ea WHERE ea.IdEntradaActividad = l.IdEntradaActividad))
+		WHERE NOT EXISTS(SELECT 1 FROM Turismo.Actividad a WHERE a.IdActividad = l.IdActividad))
 	BEGIN
-		RAISERROR('Alguna entrada de actividad indicada no existe',16,1)
+		RAISERROR('Alguna actividad indicada no existe',16,1)
 		RETURN
 	END
 
-	-- Validación de cupo
+	-- Validación de cupo GLOBAL por actividad:
+	-- (lo solicitado en este TVP) + (lo ya vendido de esa actividad) <= CupoMaximo
 	IF EXISTS(
 		SELECT 1
 		FROM (
-			-- lo que solicitamos en este TVP
-			SELECT t.IdTurno, a.CupoMaximo, SUM(l.Cantidad) AS CantSolicitada
+			SELECT l.IdActividad, SUM(l.Cantidad) AS CantSolicitada
 			FROM @Lineas l
-			INNER JOIN Turismo.EntradaActividad ea ON ea.IdEntradaActividad = l.IdEntradaActividad
-			INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
-			INNER JOIN Turismo.Actividad a ON a.IdActividad = t.IdActividad
-			GROUP BY t.IdTurno, a.CupoMaximo
+			GROUP BY l.IdActividad
 		) sol
+		INNER JOIN Turismo.Actividad a ON a.IdActividad = sol.IdActividad
 		OUTER APPLY (
-			-- lo ya vendido del turno en particular (todas sus entradas)
-			SELECT ISNULL(SUM(l2.Cantidad),0) AS Ocupada
-			FROM Ventas.LineaDeEntradaActividad l2
-			INNER JOIN Turismo.EntradaActividad ea2 ON ea2.IdEntradaActividad = l2.IdEntradaActividad
-			WHERE ea2.IdTurno = sol.IdTurno
+			SELECT ISNULL(SUM(le.Cantidad),0) AS Ocupada
+			FROM Ventas.LineaDeEntradaActividad le
+			WHERE le.IdActividad = sol.IdActividad
 		) oc
-		WHERE sol.CantSolicitada + oc.Ocupada > sol.CupoMaximo
+		WHERE sol.CantSolicitada + oc.Ocupada > a.CupoMaximo
 	)
 	BEGIN
-		RAISERROR('Algún turno supera el cupo máximo de la actividad',16,1)
+		RAISERROR('Alguna actividad supera la cantidad de cupos disponibles',16,1)
 		RETURN
 	END
 
@@ -138,23 +131,21 @@ BEGIN
 			) AS Comb
 		)
 
-		INSERT INTO Ventas.LineaDeEntradaActividad(IdEntradaActividad, IdVenta, PrecioUnitario, Cantidad, NumeroDeItem)
+		INSERT INTO Ventas.LineaDeEntradaActividad(IdActividad, IdVenta, PrecioUnitario, Cantidad, NumeroDeItem)
 		SELECT
-			l.IdEntradaActividad,
+			l.IdActividad,
 			@IdVenta,
-			t.Costo * @Factor,
+			a.Costo * @Factor,
 			l.Cantidad,
-			@MaxItem + ROW_NUMBER() OVER (ORDER BY l.IdEntradaActividad) -- + row_number en vez de + 1 por ser TVP
+			@MaxItem + ROW_NUMBER() OVER (ORDER BY l.IdActividad)
 		FROM @Lineas l
-		INNER JOIN Turismo.EntradaActividad ea ON ea.IdEntradaActividad = l.IdEntradaActividad
-		INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
+		INNER JOIN Turismo.Actividad a ON a.IdActividad = l.IdActividad
 
 		UPDATE Ventas.Venta
 		SET Monto = Monto + ISNULL((
-			SELECT SUM(t.Costo * @Factor * l.Cantidad)
+			SELECT SUM(a.Costo * @Factor * l.Cantidad)
 			FROM @Lineas l
-			INNER JOIN Turismo.EntradaActividad ea ON ea.IdEntradaActividad = l.IdEntradaActividad
-			INNER JOIN Turismo.Turno t ON t.IdTurno = ea.IdTurno
+			INNER JOIN Turismo.Actividad a ON a.IdActividad = l.IdActividad
 		), 0)
 		WHERE IdVenta = @IdVenta
 	END TRY

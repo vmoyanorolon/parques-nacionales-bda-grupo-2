@@ -105,6 +105,12 @@ BEGIN
         FROM Turismo.Actividad
         WHERE IdActividad = @IdActividad;
 
+        IF @Tipo IS NULL
+        BEGIN
+            RAISERROR('La actividad indicada no existe.', 16, 1);
+            RETURN;
+        END
+
         IF @Tipo <> 'Tour'
         BEGIN
             RAISERROR('La actividad no es de tipo Tour.', 16, 1);
