@@ -20,7 +20,7 @@ EXEC SP_AltaVisitante '1122334455', 'visitante@gmail.com', '123123123', 'DNI', '
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE PROCEDURE SP_AltaVisitante
+CREATE OR ALTER PROCEDURE SP_AltaVisitante
     @Telefono VARCHAR(20),
     @CorreoVisitante VARCHAR(100),
     @NumeroDocumento VARCHAR(15),
@@ -62,7 +62,7 @@ EXEC SP_ModificacionVisitante 1, '999888777', 'nuevo-visitante@gmail.com', null,
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE PROCEDURE SP_ModificacionVisitante
+CREATE OR ALTER PROCEDURE SP_ModificacionVisitante
     @IdVisitante INT,
     @Telefono VARCHAR(20) = NULL,
     @CorreoVisitante VARCHAR(100) = NULL,
@@ -117,7 +117,7 @@ EXEC SP_BajaVisitante 2;
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE PROCEDURE SP_BajaVisitante
+CREATE OR ALTER PROCEDURE SP_BajaVisitante
     @IdVisitante INT
 AS
 BEGIN
@@ -146,7 +146,7 @@ SELECT * FROM Turismo.TipoVisitante
 */
 
 
-CREATE PROCEDURE SP_AltaTipoVisitante
+CREATE OR ALTER PROCEDURE SP_AltaTipoVisitante
     @Descripcion VARCHAR(50),
     @Descuento TINYINT
 AS
@@ -172,7 +172,7 @@ EXEC SP_ModificacionTipoVisitante 1, null, 15;
 SELECT * FROM Turismo.TipoVisitante;
 */
 
-CREATE PROCEDURE SP_ModificacionTipoVisitante
+CREATE OR ALTER PROCEDURE SP_ModificacionTipoVisitante
     @IdTipoVisitante INT,
     @Descripcion VARCHAR(50) = NULL,
     @Descuento TINYINT = NULL
@@ -207,7 +207,7 @@ EXEC SP_BajaTipoVisitante 1;
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE PROCEDURE SP_BajaTipoVisitante
+CREATE OR ALTER PROCEDURE SP_BajaTipoVisitante
     @IdTipoVisitante INT
 AS
 BEGIN
@@ -226,59 +226,6 @@ BEGIN
     END
 
     DELETE FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante;
-END
-GO
-
---------------------------------------------------------------------------------
--- LOGICA DE NEGOCIO 
---------------------------------------------------------------------------------
-
--- =============================================
--- SP_ActualizarPrecioEntrada
--- Actualiza el costo de las entradas (EntradaParque) de un parque.
--- =============================================
-
-/*
-DROP PROCEDURE SP_ActualizarPrecioEntrada
-*/
-
-CREATE OR ALTER PROCEDURE SP_ActualizarPrecioEntrada
-    @IdParque INT,
-    @NuevoCosto DECIMAL(10,2)
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-        BEGIN
-            RAISERROR('El parque indicado no existe.', 16, 1);
-            RETURN;
-        END
-
-        IF @NuevoCosto <= 0
-        BEGIN
-            RAISERROR('El nuevo costo debe ser mayor a cero.', 16, 1);
-            RETURN;
-        END
-
-        IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdParque = @IdParque)
-        BEGIN
-            RAISERROR('El parque no tiene entradas registradas para actualizar.', 16, 1);
-            RETURN;
-        END
-
-        UPDATE Turismo.EntradaParque
-        SET Costo = @NuevoCosto
-        WHERE IdParque = @IdParque;
-
-        PRINT 'Se actualizaron ' + CAST(@@ROWCOUNT AS VARCHAR(10))
-              + ' entrada(s) del parque.';
-    END TRY
-    BEGIN CATCH
-        DECLARE @Msg NVARCHAR(2048) = ERROR_MESSAGE();
-        RAISERROR(@Msg, 16, 1);
-    END CATCH
 END
 GO
 
