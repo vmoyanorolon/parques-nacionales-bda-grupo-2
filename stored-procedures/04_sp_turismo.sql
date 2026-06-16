@@ -488,7 +488,7 @@ BEGIN
     SET NOCOUNT ON
 
     --Validamos que el parque exista
-    IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
+    IF @IdParque IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
     BEGIN
         RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
         RETURN;
