@@ -24,21 +24,30 @@ CREATE OR ALTER PROCEDURE SP_AltaParque
     @Provincia VARCHAR(50),
     @Numero INT,
     @Localidad VARCHAR(50),
-    @TipoParque VARCHAR(50)
+    @TipoParque VARCHAR(50),
+    @IdParque INT = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    
+    DECLARE @errores VARCHAR(2048) = ''
 
     IF EXISTS (SELECT 1 FROM Parques.Parque WHERE Nombre = @Nombre)
+        SET @errores += '- Ya existe un parque con ese nombre.' + CHAR(13)
+    
+    IF @errores <> ''
     BEGIN
-        RAISERROR('Ya existe un parque con ese nombre.', 16, 1);
-        RETURN;
+        SET @errores = 'No se pudo dar de alta el parque:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1
     END
 
     INSERT INTO Parques.Parque
         (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
     VALUES
-        (@Nombre, @HorarioCierre, @HorarioApertura, @Superficie, @Provincia, @Numero, @Localidad, @TipoParque);
+        (@Nombre, @HorarioCierre, @HorarioApertura, @Superficie, @Provincia, @Numero, @Localidad, @TipoParque)
+    
+    SET @IdParque = SCOPE_IDENTITY();
 END
 GO
 
@@ -64,17 +73,20 @@ CREATE OR ALTER PROCEDURE SP_ModificacionParque
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON
+
+    DECLARE @errores VARCHAR(2048) = ''
 
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-    BEGIN
-        RAISERROR('El parque no existe.', 16, 1);
-        RETURN;
-    END
+    THROW 50000, 'El parque indicado no existe.',1 
 
     IF @Nombre IS NOT NULL AND EXISTS (SELECT 1 FROM Parques.Parque WHERE Nombre = @Nombre AND IdParque <> @IdParque)
+    SET @errores += '- Ya existe otro parque con ese nombre.' + CHAR(13)
+
+    IF @errores <> ''
     BEGIN
-        RAISERROR('Ya existe otro parque con ese nombre.', 16, 1);
-        RETURN;
+        SET @errores = 'No se pudo modificar el parque:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1
     END
 
     UPDATE Parques.Parque
@@ -104,17 +116,17 @@ CREATE OR ALTER PROCEDURE SP_BajaParque
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    -- No se usa variable de error concatenado porque es un único error posible. El resto de errores son detectados en el catch
 
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-    BEGIN
-        RAISERROR('El parque no existe.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'El parque indicado no existe.', 1;
 
     BEGIN TRY
         DELETE FROM Parques.Parque WHERE IdParque = @IdParque;
     END TRY
     BEGIN CATCH
-        RAISERROR('No se puede eliminar el parque: tiene registros relacionados (actividades, entradas, concesiones, personal asignado, etc.).', 16, 1);
+        THROW 50000, 'No se puede eliminar el parque: tiene registros relacionados (actividades, entradas, concesiones, personal asignado, etc.).', 1;
     END CATCH
 END

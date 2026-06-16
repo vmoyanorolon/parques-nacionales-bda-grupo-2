@@ -47,7 +47,6 @@ END
 /*
 DROP TABLE Turismo.Actividad
 DROP TABLE Turismo.EntradaParque
-DROP TABLE Turismo.EntradaActividad
 DROP TABLE Turismo.Turno
 DROP TABLE Turismo.Visitante
 DROP TABLE Turismo.TipoVisitante
@@ -59,6 +58,7 @@ BEGIN
 		IdActividad INT IDENTITY(1,1) PRIMARY KEY,
 		Nombre VARCHAR(50) NOT NULL,
 		Tipo VARCHAR(9) CONSTRAINT CK_Actividad_Tipo CHECK(Tipo IN('Tour', 'Atracción')),
+		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Turno_Costo CHECK(Costo >= 0),
 		CupoMaximo INT NOT NULL CONSTRAINT CK_Actividad_CupoMaximo CHECK(CupoMaximo > 0),
 		IdParque INT NOT NULL FOREIGN KEY REFERENCES Parques.Parque(IdParque)
 	);
@@ -78,20 +78,10 @@ IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Turno')
 BEGIN
 	CREATE TABLE Turismo.Turno(
 		IdTurno INT IDENTITY(1,1) PRIMARY KEY,
-		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Turno_Costo CHECK(Costo >= 0),
 		HoraInicio TIME(0) NOT NULL,
 		HoraFin TIME(0) NOT NULL,
 		DiaDeSemana TINYINT NOT NULL CONSTRAINT CK_Turno_DiaDeSemana CHECK (DiaDeSemana BETWEEN 1 AND 7), -- Domingo = 1
 		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
-	);
-END
-
-IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'EntradaActividad')
-BEGIN
-	CREATE TABLE Turismo.EntradaActividad(
-		IdEntradaActividad INT IDENTITY(1,1) PRIMARY KEY,
-		FechaAcceso DATE NOT NULL DEFAULT GETDATE(),
-		IdTurno INT NOT NULL FOREIGN KEY REFERENCES Turismo.Turno(IdTurno)
 	);
 END
 
@@ -278,7 +268,7 @@ BEGIN
 		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
 		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaActividad_NumeroDeItem CHECK(NumeroDeItem >0),
 		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
-		IdEntradaActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.EntradaActividad(IdEntradaActividad)
+		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
 
 		CONSTRAINT PK_LineaDeEntradaActividad PRIMARY KEY (IdVenta,NumeroDeItem)
 	);
