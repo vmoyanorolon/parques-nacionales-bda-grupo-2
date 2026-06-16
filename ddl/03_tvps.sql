@@ -4,6 +4,9 @@
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
 -- Descripción: creación de TVPS para stored procedures
 
+USE ParquesNacionales
+GO
+
 IF TYPE_ID('Ventas.TVP_LineaParque') IS NOT NULL DROP TYPE Ventas.TVP_LineaParque
 GO
 CREATE TYPE Ventas.TVP_LineaParque AS TABLE (

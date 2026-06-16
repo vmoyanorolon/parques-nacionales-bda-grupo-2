@@ -4,6 +4,9 @@
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
 -- Descripción: Stored Procedures del esquema Parque
 
+USE ParquesNacionales
+GO
+
 ----------------------------------------
 -- CREACION 
 ----------------------------------------
@@ -13,7 +16,7 @@ EXEC SP_AltaParque 'Parque Nacional Iguazú', '18:00', '08:00', 67620.00, 'Mision
 SELECT * FROM Parques.Parque
 */
 
-CREATE PROCEDURE SP_AltaParque
+CREATE OR ALTER PROCEDURE SP_AltaParque
     @Nombre VARCHAR(50),
     @HorarioCierre TIME,
     @HorarioApertura TIME,
@@ -48,7 +51,7 @@ EXEC SP_ModificacionParque 1, NULL, '20:00', NULL, NULL, NULL, 123;
 SELECT * FROM Parques.Parque
 */
 
-CREATE PROCEDURE SP_ModificacionParque
+CREATE OR ALTER PROCEDURE SP_ModificacionParque
     @IdParque INT,
     @Nombre VARCHAR(50) = NULL,
     @HorarioCierre TIME = NULL,
@@ -96,7 +99,7 @@ EXEC SP_BajaParque 1;
 SELECT * FROM Parques.Parque
 */
 
-CREATE PROCEDURE SP_BajaParque
+CREATE OR ALTER PROCEDURE SP_BajaParque
     @IdParque INT
 AS
 BEGIN
