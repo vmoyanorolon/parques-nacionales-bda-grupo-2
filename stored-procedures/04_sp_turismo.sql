@@ -364,6 +364,7 @@ DROP PROCEDURE SP_AltaActividad
 CREATE OR ALTER PROCEDURE SP_AltaActividad
     @Nombre VARCHAR(50),
     @Costo DECIMAL(10,2),
+    @DuracionMinutos INT,
     @Tipo VARCHAR(9),
     @CupoMaximo INT,
     @IdParque INT
@@ -379,8 +380,8 @@ BEGIN
     IF EXISTS (SELECT 1 FROM Turismo.Actividad A WHERE Nombre = @Nombre AND IdParque = @IdParque)
         THROW 50000, 'La actividad ya existe dentro del parque', 1
 
-    INSERT INTO Turismo.Actividad (Nombre, Costo, Tipo, CupoMaximo, IdParque)
-    VALUES (@Nombre, @Costo ,@Tipo, @CupoMaximo, @IdParque);
+    INSERT INTO Turismo.Actividad (Nombre, Costo, DuracionMinutos, Tipo, CupoMaximo, IdParque)
+    VALUES (@Nombre, @Costo, @DuracionMinutos, @Tipo, @CupoMaximo, @IdParque);
 
     PRINT 'La actividad se creo correctamente.'
 END;
@@ -398,6 +399,7 @@ CREATE OR ALTER PROCEDURE SP_ModificacionActividad
     @IdActividad INT,
     @Nombre VARCHAR(50) = NULL,
     @Costo DECIMAL(10,2) = NULL,
+    @DuracionMinutos INT = NULL,
     @Tipo VARCHAR(9) = NULL,
     @CupoMaximo INT = NULL
 AS
@@ -409,10 +411,11 @@ BEGIN
         THROW 50000, 'La actividad que se quiere modificar no existe', 1
 
     UPDATE Turismo.Actividad
-    SET Nombre     = ISNULL(@Nombre, Nombre),
-        Costo      = ISNULL(@Costo, Costo),
-        Tipo       = ISNULL(@Tipo, Tipo),
-        CupoMaximo = ISNULL(@CupoMaximo, CupoMaximo)
+    SET Nombre            = ISNULL(@Nombre, Nombre),
+        Costo             = ISNULL(@Costo, Costo),
+        DuracionMinutos   = ISNULL(@DuracionMinutos, DuracionMinutos),
+        Tipo              = ISNULL(@Tipo, Tipo),
+        CupoMaximo        = ISNULL(@CupoMaximo, CupoMaximo)
     WHERE IdActividad = @IdActividad;
 
     PRINT 'Actividad actualizada correctamente.';

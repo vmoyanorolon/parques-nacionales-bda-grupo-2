@@ -255,7 +255,8 @@ CREATE OR ALTER PROCEDURE SP_AltaGuia
 	@Edad TINYINT,
 	@Apellido VARCHAR(50),
 	@Nombre VARCHAR(50),
-	@Titulo VARCHAR(50)
+	@Titulo VARCHAR(50),
+	@Especialidad VARCHAR(50)
 AS
 BEGIN
 	SET NOCOUNT ON
@@ -276,8 +277,8 @@ BEGIN
 		THROW 50000, @errores, 1
 	END
 
-	INSERT INTO Personal.Guia (Telefono, CorreoGuia, NumeroDocumento, TipoDocumento, Edad, Apellido, Nombre, Titulo)
-	VALUES (@Telefono, @CorreoGuia, @NumeroDocumento, @TipoDocumento, @Edad, @Apellido, @Nombre, @Titulo);
+	INSERT INTO Personal.Guia (Telefono, CorreoGuia, NumeroDocumento, TipoDocumento, Edad, Apellido, Nombre, Titulo, Especialidad)
+	VALUES (@Telefono, @CorreoGuia, @NumeroDocumento, @TipoDocumento, @Edad, @Apellido, @Nombre, @Titulo, @Especialidad);
 
 	PRINT 'Guia creado correctamente.'
 END;
@@ -298,7 +299,8 @@ CREATE OR ALTER PROCEDURE SP_ModificacionGuia
 	@Edad TINYINT = NULL,
 	@Apellido VARCHAR(50) = NULL,
 	@Nombre VARCHAR(50) = NULL,
-	@Titulo VARCHAR(50) = NULL
+	@Titulo VARCHAR(50) = NULL,
+	@Especialidad VARCHAR(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON
@@ -327,7 +329,8 @@ BEGIN
 		Edad			= ISNULL(@Edad, Edad),
 		Apellido		= ISNULL(@Apellido, Apellido),
 		Nombre			= ISNULL(@Nombre, Nombre),
-		Titulo			=  ISNULL(@Titulo, Titulo)
+		Titulo			=  ISNULL(@Titulo, Titulo),
+		Especialidad	= ISNULL(@Especialidad, Especialidad)
 	WHERE IdGuia = @IdGuia
 
 	PRINT'Guia actualizado correctamente.'
@@ -618,9 +621,23 @@ BEGIN
 		THROW 50000, @errores, 1
 	END
 
-	INSERT INTO Personal.Asignacion (FechaIngreso, FechaEgreso, Motivo, IdParque, IdGuardaparque)
-	VALUES (@FechaIngreso, @FechaEgreso, @Motivo, @IdParque, @IdGuardaparque)
+	BEGIN TRANSACTION
+    BEGIN TRY
+		INSERT INTO Personal.Asignacion (FechaIngreso, FechaEgreso, Motivo, IdParque, IdGuardaparque)
+		VALUES (@FechaIngreso, @FechaEgreso, @Motivo, @IdParque, @IdGuardaparque)
 
-	PRINT'La asignacion fue creada correctamente'
+		 -- Si la asignación es abierta, el guardaparque vuelve a estar activo
+		UPDATE Personal.Guardaparque
+		SET Estado = 'Activo'
+		WHERE IdGuardaparque = @IdGuardaparque
+			AND @FechaEgreso IS NULL
+
+		COMMIT TRANSACTION
+		PRINT 'La asignacion fue creada correctamente'
+	END TRY
+	BEGIN CATCH
+		IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+		;THROW
+	END CATCH
 END
 GO

@@ -57,8 +57,9 @@ BEGIN
 	CREATE TABLE Turismo.Actividad(
 		IdActividad INT IDENTITY(1,1) PRIMARY KEY,
 		Nombre VARCHAR(50) NOT NULL,
-		Tipo VARCHAR(9) CONSTRAINT CK_Actividad_Tipo CHECK(Tipo IN('Tour', 'Atracción')),
-		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Turno_Costo CHECK(Costo >= 0),
+		Tipo VARCHAR(9) NOT NULL CONSTRAINT CK_Actividad_Tipo CHECK(Tipo IN('Tour', 'Atracción')),
+		Costo DECIMAL(10,2) NOT NULL CONSTRAINT CK_Actividad_Costo CHECK(Costo >= 0),
+		DuracionMinutos INT NOT NULL CONSTRAINT CK_Actividad_DuracionMinutos CHECK(DuracionMinutos > 0),
 		CupoMaximo INT NOT NULL CONSTRAINT CK_Actividad_CupoMaximo CHECK(CupoMaximo > 0),
 		IdParque INT NOT NULL FOREIGN KEY REFERENCES Parques.Parque(IdParque)
 	);
@@ -177,10 +178,11 @@ BEGIN
 		CorreoGuia VARCHAR(100) NOT NULL CONSTRAINT CK_Guia_CorreoGuia CHECK(CorreoGuia LIKE '%_@__%.__%'),
 		NumeroDocumento VARCHAR(15) NOT NULL UNIQUE,
 		TipoDocumento VARCHAR(15) NOT NULL CONSTRAINT CK_Guia_TipoDocumento CHECK( TipoDocumento IN('DNI','PAS', 'CUIT', 'LC', 'LE')),
-		Edad TINYINT NOT NULL CHECK (Edad BETWEEN 0 AND 99),
+		Edad TINYINT NOT NULL CONSTRAINT CK_Guia_Edad CHECK (Edad BETWEEN 0 AND 99),
 		Apellido VARCHAR(50) NOT NULL,
 		Nombre VARCHAR(50) NOT NULL,
-		Titulo VARCHAR(50)
+		Titulo VARCHAR(50),
+		Especialidad VARCHAR(50) NOT NULL
 	)
 END
 
