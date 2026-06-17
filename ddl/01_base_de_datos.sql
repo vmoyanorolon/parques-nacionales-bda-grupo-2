@@ -8,13 +8,19 @@
 -- BASE DE DATOS
 ----------------------------------------
 
--- DROP DATABASE ParquesNacionales
+/*
+USE tempdb
+DROP DATABASE ParquesNacionales
+*/
+
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ParquesNacionales')
 BEGIN
 	CREATE DATABASE ParquesNacionales
 	COLLATE Latin1_General_CI_AS
 END
 GO
+
+SELECT name FROM sys.databases WHERE name = 'ParquesNacionales'
 
 USE ParquesNacionales
 GO
@@ -30,11 +36,16 @@ BEGIN
 	EXEC('CREATE SCHEMA Ventas')
 END
 
+SELECT name AS NombreEsquema FROM sys.schemas WHERE name = 'Ventas'
+
 -- DROP SCHEMA Turismo
 IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = 'Turismo')
 BEGIN
 	EXEC('CREATE SCHEMA Turismo')
 END
+
+SELECT name AS NombreEsquema FROM sys.schemas WHERE name = 'Turismo'
+
 
 -- DROP SCHEMA Personal
 IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = 'Personal')
@@ -42,14 +53,20 @@ BEGIN
 	EXEC('CREATE SCHEMA Personal')
 END
 
+SELECT name AS NombreEsquema FROM sys.schemas WHERE name = 'Personal'
+
 -- DROP SCHEMA Concesiones
 IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = 'Concesiones')
 BEGIN
 	EXEC('CREATE SCHEMA Concesiones')
 END
 
+SELECT name AS NombreEsquema FROM sys.schemas WHERE name = 'Concesiones'
+
 -- DROP SCHEMA Parques
 IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = 'Parques')
 BEGIN
 	EXEC('CREATE SCHEMA Parques')
 END
+
+SELECT name AS NombreEsquema FROM sys.schemas WHERE name = 'Parques'

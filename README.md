@@ -19,6 +19,12 @@ Sistema centralizado para la gestión de parques nacionales argentinos. Contempl
 
 ---
 
+## Entorno de desarrollo
+
+El proyecto incluye un entorno Docker para facilitar el desarrollo local. Ver instrucciones en `docker/README.md`.
+
+---
+
 ## Convención de nomenclatura
 
 - **Tablas:** PascalCase con schema como prefijo. Ejemplo: `Turismo.Visitante`
