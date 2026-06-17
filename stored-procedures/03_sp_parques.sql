@@ -29,7 +29,6 @@ CREATE OR ALTER PROCEDURE SP_AltaParque
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
     
     DECLARE @errores VARCHAR(2048) = ''
 
@@ -73,7 +72,6 @@ CREATE OR ALTER PROCEDURE SP_ModificacionParque
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON
 
     DECLARE @errores VARCHAR(2048) = ''
 
@@ -116,7 +114,6 @@ CREATE OR ALTER PROCEDURE SP_BajaParque
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
 
     -- No se usa variable de error concatenado porque es un único error posible. El resto de errores son detectados en el catch
 
