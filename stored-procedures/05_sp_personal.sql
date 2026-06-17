@@ -63,7 +63,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -137,7 +138,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -185,7 +187,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -228,7 +231,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -306,7 +310,7 @@ BEGIN
 		SET @errores += '- El guía con id ' + CAST(@IdGuia AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Validamos que el numero de documento nuevo no exista
-	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guia WHERE NumeroDocumento = @NumeroDocumento)
+	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guia WHERE NumeroDocumento = @NumeroDocumento AND IdGuia <> @IdGuia)
 		SET @errores += '- El guía con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
 
 	IF @errores <> ''
@@ -359,7 +363,7 @@ BEGIN
 		PRINT'Guia eliminado correctamente.'
 	END TRY
 	BEGIN CATCH
-		RAISERROR('No se puede eliminar el Guia: Tiene registros de Habilitaciones asociadas y Parques donde trabaja asociados', 16, 1);
+		THROW 50000, 'No se puede eliminar el Guia: Tiene registros de Habilitaciones asociadas y Parques donde trabaja asociados', 1
 	END CATCH
 
 END;
@@ -514,7 +518,7 @@ BEGIN
 		SET @errores += '- El guardaparque con id ' + CAST(@IdGuardaparque AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Validamos que el numero de documento nuevo no exista
-	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE NumeroDocumento = @NumeroDocumento)
+	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE NumeroDocumento = @NumeroDocumento AND IdGuardaparque <> @IdGuardaparque)
 		SET @errores += '- El guardaparque con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
 
 	IF @errores <> ''
@@ -567,7 +571,7 @@ BEGIN
 		PRINT'Guardaparque eliminado correctamente.'
 	END TRY
 	BEGIN CATCH
-		RAISERROR('No se puede eliminar el Guardaparque: Tiene una Asignacion asociada', 16, 1);
+		THROW 50000, 'No se puede eliminar el Guardaparque: Tiene una Asignacion asociada', 1
 	END CATCH
 
 END;

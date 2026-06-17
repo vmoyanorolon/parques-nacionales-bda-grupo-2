@@ -125,7 +125,10 @@ BEGIN
     SET NOCOUNT ON;
 
     IF NOT EXISTS (SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
-        THROW 50000, 'No se puede eliminar al visitante: tiene registros relacionados.', 1;
+        THROW 50000, 'No se puede eliminar al visitante: no existe.', 1;
+
+    IF EXISTS (SELECT 1 FROM Ventas.Venta WHERE IdVisitante = @IdVisitante)
+        THROW 50000, 'No se puede eliminar al visitante: tiene ventas asociadas.', 1;
 
     DELETE FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante;
 END
@@ -227,7 +230,6 @@ DROP PROCEDURE SP_AltaTurno
 */
 CREATE OR ALTER PROCEDURE SP_AltaTurno
 @IdActividad INT,
-@Costo DECIMAL(10,2),
 @HoraInicio TIME(0),
 @HoraFin TIME(0),
 @DiaDeSemana TINYINT
@@ -248,8 +250,8 @@ BEGIN
     BEGIN TRANSACTION
     BEGIN TRY
         
-        INSERT INTO Turismo.Turno(IdActividad, Costo, HoraInicio, HoraFin, DiaDeSemana)
-        VALUES(@IdActividad, @Costo, @HoraInicio, @HoraFin, @DiaDeSemana)
+        INSERT INTO Turismo.Turno(IdActividad, HoraInicio, HoraFin, DiaDeSemana)
+        VALUES(@IdActividad, @HoraInicio, @HoraFin, @DiaDeSemana)
         SELECT @IdTurno = SCOPE_IDENTITY()
         
         COMMIT TRANSACTION
@@ -259,6 +261,7 @@ BEGIN
     BEGIN CATCH
         PRINT 'Error: ' + ERROR_MESSAGE()
         ROLLBACK TRANSACTION
+        THROW
     END CATCH
 END
 GO
@@ -272,7 +275,6 @@ DROP PROCEDURE SP_ModificacionTurno
 */
 CREATE OR ALTER PROCEDURE SP_ModificacionTurno
 @IdTurno INT,
-@Costo DECIMAL(10,2) = NULL,
 @HoraInicio TIME(0) = NULL,
 @HoraFin TIME(0) = NULL,
 @DiaDeSemana TINYINT = NULL
@@ -293,7 +295,6 @@ BEGIN
 
         UPDATE Turismo.Turno
         SET
-            Costo = ISNULL(@Costo, Costo),
             HoraInicio = ISNULL(@HoraInicio, HoraInicio),
             HoraFin = ISNULL(@HoraFin, HoraFin),
             DiaDeSemana = ISNULL(@DiaDeSemana, DiaDeSemana)
@@ -305,6 +306,7 @@ BEGIN
     BEGIN CATCH
         PRINT 'Error: ' + ERROR_MESSAGE()
         ROLLBACK TRANSACTION
+        THROW
     END CATCH
 
     END
@@ -341,7 +343,8 @@ BEGIN
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION
-        PRINT 'Error: ' + ERROR_MESSAGE()
+        PRINT 'Error: ' + ERROR_MESSAGE();
+        THROW
     END CATCH
 END
 GO
@@ -360,6 +363,7 @@ DROP PROCEDURE SP_AltaActividad
 
 CREATE OR ALTER PROCEDURE SP_AltaActividad
     @Nombre VARCHAR(50),
+    @Costo DECIMAL(10,2),
     @Tipo VARCHAR(9),
     @CupoMaximo INT,
     @IdParque INT
@@ -375,8 +379,8 @@ BEGIN
     IF EXISTS (SELECT 1 FROM Turismo.Actividad A WHERE Nombre = @Nombre AND IdParque = @IdParque)
         THROW 50000, 'La actividad ya existe dentro del parque', 1
 
-    INSERT INTO Turismo.Actividad (Nombre, Tipo, CupoMaximo, IdParque)
-    VALUES (@Nombre, @Tipo, @CupoMaximo, @IdParque);
+    INSERT INTO Turismo.Actividad (Nombre, Costo, Tipo, CupoMaximo, IdParque)
+    VALUES (@Nombre, @Costo ,@Tipo, @CupoMaximo, @IdParque);
 
     PRINT 'La actividad se creo correctamente.'
 END;
@@ -393,16 +397,12 @@ DROP PROCEDURE SP_ModificacionActividad
 CREATE OR ALTER PROCEDURE SP_ModificacionActividad
     @IdActividad INT,
     @Nombre VARCHAR(50) = NULL,
+    @Costo DECIMAL(10,2) = NULL,
     @Tipo VARCHAR(9) = NULL,
-    @CupoMaximo INT = NULL,
-    @IdParque INT = NULL
+    @CupoMaximo INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON
-
-    --Validamos que el parque exista
-    IF @IdParque IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-        THROW 50000, 'El Parque indicado no existe', 1
 
     --Verficamos que la actividad exista
     IF NOT EXISTS (SELECT 1 FROM Turismo.Actividad WHERE IdActividad = @IdActividad)
@@ -410,6 +410,7 @@ BEGIN
 
     UPDATE Turismo.Actividad
     SET Nombre     = ISNULL(@Nombre, Nombre),
+        Costo      = ISNULL(@Costo, Costo),
         Tipo       = ISNULL(@Tipo, Tipo),
         CupoMaximo = ISNULL(@CupoMaximo, CupoMaximo)
     WHERE IdActividad = @IdActividad;
@@ -516,7 +517,6 @@ BEGIN
     --Validamos que la entrada exista
     IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
         THROW 50000, 'la entrada que se quiere eliminar no existe.', 1
-        RETURN;
 
     BEGIN TRY
         DELETE FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque;
