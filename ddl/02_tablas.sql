@@ -268,7 +268,7 @@ BEGIN
 		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
 		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaActividad_NumeroDeItem CHECK(NumeroDeItem >0),
 		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
-		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
+		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad),
 
 		CONSTRAINT PK_LineaDeEntradaActividad PRIMARY KEY (IdVenta,NumeroDeItem)
 	);
@@ -282,7 +282,7 @@ BEGIN
 		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
 		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaParque_NumeroDeItem CHECK(NumeroDeItem >0),
 		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
-		IdEntradaParque INT NOT NULL FOREIGN KEY REFERENCES Turismo.EntradaParque(IdEntradaParque)
+		IdEntradaParque INT NOT NULL FOREIGN KEY REFERENCES Turismo.EntradaParque(IdEntradaParque),
 
 		CONSTRAINT PK_LineaDeEntradaParque PRIMARY KEY (IdVenta,NumeroDeItem)
 	);
