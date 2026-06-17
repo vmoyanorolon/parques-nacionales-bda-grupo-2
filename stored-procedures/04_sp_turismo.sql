@@ -34,16 +34,18 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @errores VARCHAR(2048) = ''
+
     IF EXISTS (SELECT 1 FROM Turismo.Visitante WHERE NumeroDocumento = @NumeroDocumento)
-    BEGIN
-        RAISERROR('Ya existe un visitante con ese número de documento.', 16, 1);
-        RETURN;
-    END
+        SET @errores += 'Ya existe un visitante con ese número de documento.' + CHAR(13)
 
     IF EXISTS (SELECT 1 FROM Turismo.Visitante WHERE CUIT = @CUIT)
+        SET @errores += 'Ya existe un visitante con ese CUIT.' + CHAR(13)
+
+    IF @errores <> ''
     BEGIN
-        RAISERROR('Ya existe un visitante con ese CUIT.', 16, 1);
-        RETURN;
+        SET @errores = 'No se pudo dar de alta al visitante:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1
     END
 
     INSERT INTO Turismo.Visitante
@@ -77,22 +79,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @errores VARCHAR(2048) = ''
+
     IF NOT EXISTS (SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
-    BEGIN
-        RAISERROR('El visitante no existe.', 16, 1);
-        RETURN;
-    END
+        SET @errores += 'El visitante no existe.' + CHAR(13)
 
     IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Turismo.Visitante WHERE NumeroDocumento = @NumeroDocumento AND IdVisitante <> @IdVisitante)
-    BEGIN
-        RAISERROR('Ya existe otro visitante con ese número de documento.', 16, 1);
-        RETURN;
-    END
+        SET @errores += 'Ya existe otro visitante con ese número de documento.' + CHAR(13)
 
     IF @CUIT IS NOT NULL AND EXISTS (SELECT 1 FROM Turismo.Visitante WHERE CUIT = @CUIT AND IdVisitante <> @IdVisitante)
+        SET @errores += 'Ya existe otro visitante con ese CUIT.' + CHAR(13)
+
+    IF @errores <> ''
     BEGIN
-        RAISERROR('Ya existe otro visitante con ese CUIT.', 16, 1);
-        RETURN;
+        SET @errores = 'No se pudo modificar al visitante:' + CHAR(13) + @errores;
+        THROW 50000, @errores, 1
     END
 
     UPDATE Turismo.Visitante
@@ -124,10 +125,7 @@ BEGIN
     SET NOCOUNT ON;
 
     IF NOT EXISTS (SELECT 1 FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante)
-    BEGIN
-        RAISERROR('El visitante no existe.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'No se puede eliminar al visitante: tiene registros relacionados.', 1;
 
     DELETE FROM Turismo.Visitante WHERE IdVisitante = @IdVisitante;
 END
@@ -154,10 +152,7 @@ BEGIN
     SET NOCOUNT ON;
 
     IF EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE Descripcion = @Descripcion)
-    BEGIN
-        RAISERROR('Ya existe un tipo de visitante con esa descripción.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'Ya existe un tipo de visitante con esa descripción.', 1
 
     INSERT INTO Turismo.TipoVisitante (Descripcion, Descuento)
     VALUES (@Descripcion, @Descuento);
@@ -180,17 +175,13 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @errores VARCHAR(2048) = ''
+
     IF NOT EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante)
-    BEGIN
-        RAISERROR('El tipo de visitante no existe.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'El tipo de visitante no existe.', 1
 
     IF @Descripcion IS NOT NULL AND EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE Descripcion = @Descripcion AND IdTipoVisitante <> @IdTipoVisitante)
-    BEGIN
-        RAISERROR('Ya existe otro tipo de visitante con esa descripción.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'Ya existe otro tipo de visitante con esa descripción.',1
 
     UPDATE Turismo.TipoVisitante
     SET Descripcion = COALESCE(@Descripcion, Descripcion),
@@ -214,16 +205,10 @@ BEGIN
     SET NOCOUNT ON;
 
     IF NOT EXISTS (SELECT 1 FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante)
-    BEGIN
-        RAISERROR('El tipo de visitante no existe.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'El tipo de visitante no existe.', 1
 
     IF EXISTS (SELECT 1 FROM Turismo.Visitante WHERE IdTipoVisitante = @IdTipoVisitante)
-    BEGIN
-        RAISERROR('No se puede eliminar: el tipo de visitante tiene visitantes asociados.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'No se puede eliminar: el tipo de visitante tiene visitantes asociados.', 1
 
     DELETE FROM Turismo.TipoVisitante WHERE IdTipoVisitante = @IdTipoVisitante;
 END
@@ -249,6 +234,7 @@ CREATE OR ALTER PROCEDURE SP_AltaTurno
 AS
 BEGIN
     SET NOCOUNT ON
+    SET XACT_ABORT ON;
 
     DECLARE @IdTurno INT
 
@@ -257,10 +243,7 @@ BEGIN
         FROM Turismo.Actividad
         WHERE IdActividad = @IdActividad
     )
-    BEGIN
-        RAISERROR('La actividad indicada no existe, no se dará de alta ningún turno',16,1)
-        RETURN
-    END
+        THROW 50000, 'La actividad indicada no existe, no se dará de alta ningún turno',1
 
     BEGIN TRANSACTION
     BEGIN TRY
@@ -296,16 +279,14 @@ CREATE OR ALTER PROCEDURE SP_ModificacionTurno
 AS
 BEGIN
     SET NOCOUNT ON
+    SET XACT_ABORT ON
 
     IF NOT EXISTS(
     SELECT 1
     FROM Turismo.Turno
     WHERE IdTurno = @IdTurno
     )
-    BEGIN
-        RAISERROR('El turno indicado no existe, no se hará ninguna modificación',16,1)
-        RETURN
-    END
+        THROW 50000, 'El turno indicado no existe, no se hará ninguna modificación',1
 
     BEGIN TRANSACTION
     BEGIN TRY
@@ -341,16 +322,14 @@ CREATE OR ALTER PROCEDURE SP_BajaTurno
 AS
 BEGIN
     SET NOCOUNT ON
+    SET XACT_ABORT ON
 
     IF NOT EXISTS(
         SELECT 1
         FROM Turismo.Turno
         WHERE IdTurno = @IdTurno
     )
-    BEGIN
-        RAISERROR('El turno indicado no existe, no se hará ningún cambio', 16, 1)
-        RETURN
-    END
+        THROW 50000,'El turno indicado no existe, no se hará ningún cambio', 1
 
     BEGIN TRANSACTION
     BEGIN TRY
@@ -390,17 +369,11 @@ BEGIN
 
     --Validamos que el parque exista
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-    BEGIN
-        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
-        RETURN;
-    END
+        THROW 50000, 'El Parque indicado no existe', 1
 
     --Validamos que no exista la misma actividad dentro del mismo parque
     IF EXISTS (SELECT 1 FROM Turismo.Actividad A WHERE Nombre = @Nombre AND IdParque = @IdParque)
-    BEGIN
-        RAISERROR('La actividad "%s" ya existe dentro del parque con Id %d', 16, 1, @Nombre, @IdParque);
-        RETURN;
-    END
+        THROW 50000, 'La actividad ya existe dentro del parque', 1
 
     INSERT INTO Turismo.Actividad (Nombre, Tipo, CupoMaximo, IdParque)
     VALUES (@Nombre, @Tipo, @CupoMaximo, @IdParque);
@@ -429,17 +402,11 @@ BEGIN
 
     --Validamos que el parque exista
     IF @IdParque IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-    BEGIN
-        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
-        RETURN;
-    END
+        THROW 50000, 'El Parque indicado no existe', 1
 
     --Verficamos que la actividad exista
     IF NOT EXISTS (SELECT 1 FROM Turismo.Actividad WHERE IdActividad = @IdActividad)
-    BEGIN
-        RAISERROR('La actividad que se quiere modificar no existe', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'La actividad que se quiere modificar no existe', 1
 
     UPDATE Turismo.Actividad
     SET Nombre     = ISNULL(@Nombre, Nombre),
@@ -467,17 +434,14 @@ BEGIN
 
     --Verificamos que exista la actividad
     IF NOT EXISTS (SELECT 1 FROM Turismo.Actividad WHERE IdActividad = @IdActividad)
-    BEGIN
-        RAISERROR('La actividad que se quiere eliminar no existe.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'La actividad que se quiere eliminar no existe.', 1
 
     BEGIN TRY
         DELETE FROM Turismo.Actividad WHERE IdActividad = @IdActividad;
         PRINT 'La actividad se elimino correctamente.'
     END TRY
     BEGIN CATCH
-        RAISERROR('No se puede eliminar la actividad: tiene registros relacionados (parques, entradas, personal asignado, etc.).', 16, 1)
+        THROW 50000, 'No se puede eliminar la actividad: tiene registros relacionados (parques, entradas, personal asignado, etc.).', 1
     END CATCH
 END;
 GO
@@ -499,10 +463,7 @@ BEGIN
 
     --Validamos que el parque exista
     IF NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-    BEGIN
-        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
-        RETURN;
-    END
+        THROW 50000, 'El Parque indicado no existe', 1
 
     INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) 
     VALUES (@Costo, @FechaAcceso, @IdParque)
@@ -526,17 +487,11 @@ BEGIN
 
     --Validamos que el parque exista si es que se ingreso alguno
     IF @IdParque IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Parques.Parque WHERE IdParque = @IdParque)
-    BEGIN
-        RAISERROR('El Parque con Id %d no existe', 16, 1, @IdParque);
-        RETURN;
-    END
+        THROW 50000, 'El Parque indicado no existe', 1
 
     --Validamos que la entrada exista
     IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
-    BEGIN
-        RAISERROR('La entrada que se quiere modificar no existe.', 16, 1);
-        RETURN;
-    END
+        THROW 50000, 'La entrada que se quiere modificar no existe.', 1
 
     UPDATE Turismo.EntradaParque
     SET Costo       = ISNULL(@Costo, Costo),
@@ -560,17 +515,15 @@ BEGIN
 
     --Validamos que la entrada exista
     IF NOT EXISTS (SELECT 1 FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque)
-    BEGIN
-        RAISERROR('la entrada que se quiere eliminar no existe.', 16, 1);
+        THROW 50000, 'la entrada que se quiere eliminar no existe.', 1
         RETURN;
-    END
 
     BEGIN TRY
         DELETE FROM Turismo.EntradaParque WHERE IdEntradaParque = @IdEntradaParque;
         PRINT 'la entrada se elimino correctamente.'
     END TRY
     BEGIN CATCH
-        RAISERROR('No se puede eliminar la entrada al parque: tiene lineas de entrada a parque asociadas.', 16, 1);
+        THROW 50000, 'No se puede eliminar la entrada al parque: tiene lineas de entrada a parque asociadas.', 1
     END CATCH
 END;
 GO
