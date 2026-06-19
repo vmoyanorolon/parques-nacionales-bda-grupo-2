@@ -40,7 +40,7 @@ BEGIN
 
 	IF @errores <> ''
 	BEGIN
-		SET @errores = 'No se pudo registrar la venta:' + CHAR(13) + @errores
+		SET @errores = 'No se pudo registrar la venta:' + CHAR(13) + @errores;
 		THROW 50000, @errores, 1
 	END
 
@@ -136,7 +136,7 @@ BEGIN
     END TRY
     BEGIN CATCH
         DECLARE @Msg NVARCHAR(2048) = ERROR_MESSAGE();
-        RAISERROR(@Msg, 16, 1);
+        THROW 50000, @Msg, 1
     END CATCH
 END
 GO
@@ -223,9 +223,8 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-
         DECLARE @Msg NVARCHAR(2048) = ERROR_MESSAGE();
-        RAISERROR(@Msg, 16, 1);
+        THROW 50000, @Msg, 1
     END CATCH
 END
 GO
@@ -275,7 +274,7 @@ BEGIN
     END TRY
     BEGIN CATCH
         DECLARE @Msg NVARCHAR(2048) = ERROR_MESSAGE();
-        RAISERROR(@Msg, 16, 1);
+        THROW 50000, @Msg, 1
     END CATCH
 END
 GO

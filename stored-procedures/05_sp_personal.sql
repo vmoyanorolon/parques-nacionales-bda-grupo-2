@@ -63,7 +63,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -137,7 +138,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -185,7 +187,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -228,7 +231,8 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
-		PRINT 'Error: ' + ERROR_MESSAGE()
+		PRINT 'Error: ' + ERROR_MESSAGE();
+		THROW
 	END CATCH
 END
 GO
@@ -251,7 +255,8 @@ CREATE OR ALTER PROCEDURE SP_AltaGuia
 	@Edad TINYINT,
 	@Apellido VARCHAR(50),
 	@Nombre VARCHAR(50),
-	@Titulo VARCHAR(50)
+	@Titulo VARCHAR(50),
+	@Especialidad VARCHAR(50)
 AS
 BEGIN
 	SET NOCOUNT ON
@@ -272,8 +277,8 @@ BEGIN
 		THROW 50000, @errores, 1
 	END
 
-	INSERT INTO Personal.Guia (Telefono, CorreoGuia, NumeroDocumento, TipoDocumento, Edad, Apellido, Nombre, Titulo)
-	VALUES (@Telefono, @CorreoGuia, @NumeroDocumento, @TipoDocumento, @Edad, @Apellido, @Nombre, @Titulo);
+	INSERT INTO Personal.Guia (Telefono, CorreoGuia, NumeroDocumento, TipoDocumento, Edad, Apellido, Nombre, Titulo, Especialidad)
+	VALUES (@Telefono, @CorreoGuia, @NumeroDocumento, @TipoDocumento, @Edad, @Apellido, @Nombre, @Titulo, @Especialidad);
 
 	PRINT 'Guia creado correctamente.'
 END;
@@ -294,7 +299,8 @@ CREATE OR ALTER PROCEDURE SP_ModificacionGuia
 	@Edad TINYINT = NULL,
 	@Apellido VARCHAR(50) = NULL,
 	@Nombre VARCHAR(50) = NULL,
-	@Titulo VARCHAR(50) = NULL
+	@Titulo VARCHAR(50) = NULL,
+	@Especialidad VARCHAR(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON
@@ -306,7 +312,7 @@ BEGIN
 		SET @errores += '- El guía con id ' + CAST(@IdGuia AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Validamos que el numero de documento nuevo no exista
-	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guia WHERE NumeroDocumento = @NumeroDocumento)
+	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guia WHERE NumeroDocumento = @NumeroDocumento AND IdGuia <> @IdGuia)
 		SET @errores += '- El guía con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
 
 	IF @errores <> ''
@@ -323,7 +329,8 @@ BEGIN
 		Edad			= ISNULL(@Edad, Edad),
 		Apellido		= ISNULL(@Apellido, Apellido),
 		Nombre			= ISNULL(@Nombre, Nombre),
-		Titulo			=  ISNULL(@Titulo, Titulo)
+		Titulo			=  ISNULL(@Titulo, Titulo),
+		Especialidad	= ISNULL(@Especialidad, Especialidad)
 	WHERE IdGuia = @IdGuia
 
 	PRINT'Guia actualizado correctamente.'
@@ -359,7 +366,7 @@ BEGIN
 		PRINT'Guia eliminado correctamente.'
 	END TRY
 	BEGIN CATCH
-		RAISERROR('No se puede eliminar el Guia: Tiene registros de Habilitaciones asociadas y Parques donde trabaja asociados', 16, 1);
+		THROW 50000, 'No se puede eliminar el Guia: Tiene registros de Habilitaciones asociadas y Parques donde trabaja asociados', 1
 	END CATCH
 
 END;
@@ -514,7 +521,7 @@ BEGIN
 		SET @errores += '- El guardaparque con id ' + CAST(@IdGuardaparque AS VARCHAR) + ' no existe.' + CHAR(13)
 
 	--Validamos que el numero de documento nuevo no exista
-	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE NumeroDocumento = @NumeroDocumento)
+	IF @NumeroDocumento IS NOT NULL AND EXISTS (SELECT 1 FROM Personal.Guardaparque WHERE NumeroDocumento = @NumeroDocumento AND IdGuardaparque <> @IdGuardaparque)
 		SET @errores += '- El guardaparque con documento ' + @NumeroDocumento + ' ya existe.' + CHAR(13)
 
 	IF @errores <> ''
@@ -567,7 +574,7 @@ BEGIN
 		PRINT'Guardaparque eliminado correctamente.'
 	END TRY
 	BEGIN CATCH
-		RAISERROR('No se puede eliminar el Guardaparque: Tiene una Asignacion asociada', 16, 1);
+		THROW 50000, 'No se puede eliminar el Guardaparque: Tiene una Asignacion asociada', 1
 	END CATCH
 
 END;
@@ -614,9 +621,23 @@ BEGIN
 		THROW 50000, @errores, 1
 	END
 
-	INSERT INTO Personal.Asignacion (FechaIngreso, FechaEgreso, Motivo, IdParque, IdGuardaparque)
-	VALUES (@FechaIngreso, @FechaEgreso, @Motivo, @IdParque, @IdGuardaparque)
+	BEGIN TRANSACTION
+    BEGIN TRY
+		INSERT INTO Personal.Asignacion (FechaIngreso, FechaEgreso, Motivo, IdParque, IdGuardaparque)
+		VALUES (@FechaIngreso, @FechaEgreso, @Motivo, @IdParque, @IdGuardaparque)
 
-	PRINT'La asignacion fue creada correctamente'
+		 -- Si la asignación es abierta, el guardaparque vuelve a estar activo
+		UPDATE Personal.Guardaparque
+		SET Estado = 'Activo'
+		WHERE IdGuardaparque = @IdGuardaparque
+			AND @FechaEgreso IS NULL
+
+		COMMIT TRANSACTION
+		PRINT 'La asignacion fue creada correctamente'
+	END TRY
+	BEGIN CATCH
+		IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+		;THROW
+	END CATCH
 END
 GO
