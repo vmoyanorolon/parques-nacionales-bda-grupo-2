@@ -126,7 +126,7 @@ BEGIN
 	CREATE TABLE Concesiones.OrganizacionConcesionaria(
 		IdOrganizacionConcesionaria INT IDENTITY(1,1) PRIMARY KEY,
 		Nombre VARCHAR(50) NOT NULL,
-		TipoActividad VARCHAR(50) NOT NULL,
+		TipoActividad VARCHAR(200) NOT NULL,
 		Cuit CHAR(11) NOT NULL,
 		CorreoContacto VARCHAR(100) CONSTRAINT CK_OrganizacionConcesionaria_CorreoContacto CHECK(CorreoContacto LIKE '%_@__%.__%'),
 		TelefonoContacto VARCHAR(20),
