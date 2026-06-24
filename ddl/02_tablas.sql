@@ -186,6 +186,19 @@ BEGIN
 	)
 END
 
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionGuia')
+BEGIN
+	CREATE TABLE Personal.LogImportacionGuia (
+		IdLog               INT IDENTITY(1,1) PRIMARY KEY,
+		NombreArchivo       VARCHAR(500)    NOT NULL,
+		FechaImportacion    DATETIME        NOT NULL DEFAULT GETDATE(),
+		TipoEvento          VARCHAR(30)     NOT NULL,   -- 'ERROR_VALIDACION' | 'DUPLICADO_INTRAARCHIVO'
+		NumeroLegajoOrigen  VARCHAR(50)     NULL,
+		NumeroDocumento     VARCHAR(15)     NULL,
+		Motivo              VARCHAR(500)    NOT NULL
+	)
+END
+
 IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'GuiaTrabajaEnParque')
 BEGIN
     CREATE TABLE Personal.GuiaTrabajaEnParque(
