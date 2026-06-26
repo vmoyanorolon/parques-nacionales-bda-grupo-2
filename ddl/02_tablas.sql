@@ -26,7 +26,7 @@ IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Parque')
 BEGIN
 	CREATE TABLE Parques.Parque(
 		IdParque INT IDENTITY(1,1) PRIMARY KEY,
-		Nombre VARCHAR(50) NOT NULL,
+		Nombre VARCHAR(100) NOT NULL,
 		HorarioCierre TIME NOT NULL,
 		HorarioApertura TIME NOT NULL,
 		Superficie DECIMAL (10,2) NOT NULL CONSTRAINT CK_Parque_Superficie CHECK(Superficie > 0),
@@ -38,6 +38,22 @@ BEGIN
 						'Reserva Natural Estricta','Reserva Natural Silvestre',
 						'Reserva Natural Educativa'))
 		)
+END
+
+/*
+DROP TABLE Parques.LogImportacionParque
+*/
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionParque')
+BEGIN
+    CREATE TABLE Parques.LogImportacionParque (
+        IdLog            INT IDENTITY(1,1) PRIMARY KEY,
+        NombreArchivo    VARCHAR(500)  NOT NULL,
+        FechaImportacion DATETIME      NOT NULL DEFAULT GETDATE(),
+        TipoEvento       VARCHAR(30)   NOT NULL,   -- 'ERROR_VALIDACION' | 'DUPLICADO_INTRAARCHIVO'
+        ClaveOrigen      VARCHAR(200)  NULL,       -- nombre del parque en el archivo
+        Motivo           VARCHAR(500)  NOT NULL
+    )
 END
 
 ----------------------------------------
