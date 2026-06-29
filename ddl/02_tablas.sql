@@ -19,6 +19,7 @@ GO
 ----------------------------------------
 
 /*
+DROP TABLE Parques.LogImportacionParque
 DROP TABLE Parques.Parque
 */
 
@@ -39,10 +40,6 @@ BEGIN
 						'Reserva Natural Educativa'))
 		)
 END
-
-/*
-DROP TABLE Parques.LogImportacionParque
-*/
 
 IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionParque')
 BEGIN
@@ -132,6 +129,7 @@ END
 ----------------------------------------
 
 /*
+DROP TABLE Concesiones.LogImportacionConcesionaria
 DROP TABLE Concesiones.PagoConcesion
 DROP TABLE Concesiones.Concesion
 DROP TABLE Concesiones.OrganizacionConcesionaria
@@ -164,6 +162,19 @@ BEGIN
 	)
 END
 
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionConcesionaria')
+BEGIN
+    CREATE TABLE Concesiones.LogImportacionConcesionaria (
+        IdLog             INT IDENTITY(1,1) PRIMARY KEY,
+        NombreArchivo     VARCHAR(500) NOT NULL,
+        FechaImportacion  DATETIME NOT NULL DEFAULT GETDATE(),
+        TipoEvento        VARCHAR(30) CONSTRAINT CK_LogImportacionConcesionaria_TipoEvento CHECK(TipoEvento IN ('ERROR_VALIDACION','DUPLICADO')) NOT NULL,
+        CuitOrigen        VARCHAR(50) NULL,
+        RazonSocialOrigen VARCHAR(200) NULL,
+        Motivo            VARCHAR(500) NOT NULL
+    )
+END
+
 IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'PagoConcesion')
 BEGIN
 	CREATE TABLE Concesiones.PagoConcesion(
@@ -182,6 +193,7 @@ END
 DROP TABLE Personal.Asignacion
 DROP TABLE Personal.Habilitacion
 DROP TABLE Personal.GuiaTrabajaEnParque
+DROP TABLE Personal.LogImportacionGuia
 DROP TABLE Personal.Guia
 DROP TABLE Personal.Guardaparque
 */
