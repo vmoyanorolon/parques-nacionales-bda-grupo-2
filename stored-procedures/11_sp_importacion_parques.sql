@@ -7,7 +7,7 @@
 USE ParquesNacionales
 GO
 
-CREATE OR ALTER PROCEDURE SP_ImportarParque
+CREATE OR ALTER PROCEDURE USP_ImportarParque
     @rutaArchivo VARCHAR(500)
 AS
 BEGIN
@@ -207,7 +207,7 @@ END
 GO
 
 /*
-EXEC SP_ImportarParque @rutaArchivo = 'C:\Users\Usuario\source\repos\parques-nacionales-bda-grupo-2\dml\imports\parques.xlsx'
+EXEC USP_ImportarParque @rutaArchivo = 'C:\Users\Usuario\source\repos\parques-nacionales-bda-grupo-2\dml\imports\parques.xlsx'
 SELECT * FROM Parques.Parque
 DELETE FROM Parques.Parque
 */

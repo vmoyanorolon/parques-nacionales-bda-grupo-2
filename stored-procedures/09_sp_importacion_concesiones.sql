@@ -7,7 +7,7 @@
 USE ParquesNacionales
 GO
 
-CREATE OR ALTER PROCEDURE SP_ImportarOrganizacionConcesionaria
+CREATE OR ALTER PROCEDURE USP_ImportarOrganizacionConcesionaria
     @rutaArchivo VARCHAR(500)
 AS
 BEGIN

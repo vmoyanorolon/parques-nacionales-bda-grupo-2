@@ -73,12 +73,12 @@ BEGIN TRY
     SET @idActividadSetup = SCOPE_IDENTITY();
 
     ----------------------------------------
-    -- SP_AltaVenta
+    -- USP_AltaVenta
     ----------------------------------------
 
     -- Test 1: alta exitosa.
     -- Resultado esperado: inserta la venta con Monto = 0 (se actualiza al agregar líneas).
-    EXEC SP_AltaVenta
+    EXEC USP_AltaVenta
         @IdVisitante  = @idVisitanteSetup,
         @MetodoDePago = 'Efectivo',
         @PuntoDeVenta = 'Boletería',
@@ -91,7 +91,7 @@ BEGIN TRY
     -- Resultado esperado: error 50000 "El ID de visitante indicado no existe."
     BEGIN TRY
         DECLARE @idVentaTest2 INT;
-        EXEC SP_AltaVenta
+        EXEC USP_AltaVenta
             @IdVisitante  = -1,
             @MetodoDePago = 'Efectivo',
             @PuntoDeVenta = 'Boletería',
@@ -116,12 +116,12 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
     ----------------------------------------
-    -- SP_AltaLineasDeEntradaParque
+    -- USP_AltaLineasDeEntradaParque
     ----------------------------------------
 
     -- Test 3: alta exitosa con una línea de entrada a parque.
@@ -129,7 +129,7 @@ BEGIN TRY
     DECLARE @lineasParqueTest3 Ventas.TVP_LineaParque;
     INSERT INTO @lineasParqueTest3 (IdEntradaParque, Cantidad) VALUES (@idEntradaSetup, 2);
 
-    EXEC SP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest3;
+    EXEC USP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest3;
     SET XACT_ABORT OFF;
 
     SELECT Test = 3, * FROM Ventas.Venta WHERE IdVenta = @idVentaTest1;
@@ -138,7 +138,7 @@ BEGIN TRY
     -- Test 4: TVP vacío.
     -- Resultado esperado: no se insertar nada.
     DECLARE @lineasParqueTest4 Ventas.TVP_LineaParque; -- sin filas
-    EXEC SP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest4;
+    EXEC USP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest4;
     PRINT 'Test 4 - OK. TVP vacío no generó error.';
 
     SELECT Test = 4, * FROM Ventas.LineaDeEntradaParque WHERE IdVenta = @idVentaTest1;
@@ -148,7 +148,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasParqueTest5 Ventas.TVP_LineaParque;
         INSERT INTO @lineasParqueTest5 (IdEntradaParque, Cantidad) VALUES (@idEntradaSetup, 1);
-        EXEC SP_AltaLineasDeEntradaParque @IdVenta = -1, @Lineas = @lineasParqueTest5;
+        EXEC USP_AltaLineasDeEntradaParque @IdVenta = -1, @Lineas = @lineasParqueTest5;
         PRINT 'Test 5 - FALLO: debería haber lanzado un error por venta inexistente.';
     END TRY
     BEGIN CATCH
@@ -169,7 +169,7 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
@@ -178,7 +178,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasParqueTest6 Ventas.TVP_LineaParque;
         INSERT INTO @lineasParqueTest6 (IdEntradaParque, Cantidad) VALUES (@idEntradaSetup, 0);
-        EXEC SP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest6;
+        EXEC USP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest6;
         PRINT 'Test 6 - FALLO: debería haber lanzado un error por cantidad inválida.';
     END TRY
     BEGIN CATCH
@@ -199,7 +199,7 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
@@ -208,7 +208,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasParqueTest7 Ventas.TVP_LineaParque;
         INSERT INTO @lineasParqueTest7 (IdEntradaParque, Cantidad) VALUES (-1, 1);
-        EXEC SP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest7;
+        EXEC USP_AltaLineasDeEntradaParque @IdVenta = @idVentaTest1, @Lineas = @lineasParqueTest7;
         PRINT 'Test 7 - FALLO: debería haber lanzado un error por entrada inexistente.';
     END TRY
     BEGIN CATCH
@@ -229,12 +229,12 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
     ----------------------------------------
-    -- SP_AltaLineasDeEntradaActividad
+    -- USP_AltaLineasDeEntradaActividad
     ----------------------------------------
 
     -- Test 8: alta exitosa con una línea de actividad.
@@ -242,7 +242,7 @@ BEGIN TRY
     DECLARE @lineasActividadTest8 Ventas.TVP_LineaActividad;
     INSERT INTO @lineasActividadTest8 (IdActividad, Cantidad) VALUES (@idActividadSetup, 1);
 
-    EXEC SP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest8;
+    EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest8;
     SET XACT_ABORT OFF;
 
     SELECT Test = 8, * FROM Ventas.Venta WHERE IdVenta = @idVentaTest1;
@@ -256,7 +256,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasActividadTest9 Ventas.TVP_LineaActividad;
         INSERT INTO @lineasActividadTest9 (IdActividad, Cantidad) VALUES (@idActividadSetup, 2);
-        EXEC SP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest9;
+        EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest9;
         PRINT 'Test 9 - FALLO: debería haber lanzado un error por cupo excedido.';
     END TRY
     BEGIN CATCH
@@ -277,7 +277,7 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
@@ -286,7 +286,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasActividadTest10 Ventas.TVP_LineaActividad;
         INSERT INTO @lineasActividadTest10 (IdActividad, Cantidad) VALUES (@idActividadSetup, 1);
-        EXEC SP_AltaLineasDeEntradaActividad @IdVenta = -1, @Lineas = @lineasActividadTest10;
+        EXEC USP_AltaLineasDeEntradaActividad @IdVenta = -1, @Lineas = @lineasActividadTest10;
         PRINT 'Test 10 - FALLO: debería haber lanzado un error por venta inexistente.';
     END TRY
     BEGIN CATCH
@@ -307,7 +307,7 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
@@ -316,7 +316,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasActividadTest11 Ventas.TVP_LineaActividad;
         INSERT INTO @lineasActividadTest11 (IdActividad, Cantidad) VALUES (@idActividadSetup, 0);
-        EXEC SP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest11;
+        EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest11;
         PRINT 'Test 11 - FALLO: debería haber lanzado un error por cantidad inválida.';
     END TRY
     BEGIN CATCH
@@ -337,7 +337,7 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
@@ -346,7 +346,7 @@ BEGIN TRY
     BEGIN TRY
         DECLARE @lineasActividadTest12 Ventas.TVP_LineaActividad;
         INSERT INTO @lineasActividadTest12 (IdActividad, Cantidad) VALUES (-1, 1);
-        EXEC SP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest12;
+        EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest12;
         PRINT 'Test 12 - FALLO: debería haber lanzado un error por actividad inexistente.';
     END TRY
     BEGIN CATCH
@@ -367,14 +367,14 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
-        EXEC SP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
 
     -- Test 13: TVP vacío.
     -- Resultado esperado: retorno silencioso sin insertar nada ni lanzar error.
     DECLARE @lineasActividadTest13 Ventas.TVP_LineaActividad; -- sin filas
-    EXEC SP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest13;
+    EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest13;
     PRINT 'Test 13 - OK. TVP vacío no generó error (retorno silencioso esperado).';
 
     SELECT Test = 13, * FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @idVentaTest1;

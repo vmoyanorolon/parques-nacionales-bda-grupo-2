@@ -16,11 +16,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_AltaVisitante '1122334455', 'visitante@gmail.com', '123123123', 'DNI', '201231231233', 30, 'Juan', 'Perez';
+EXEC USP_AltaVisitante '1122334455', 'visitante@gmail.com', '123123123', 'DNI', '201231231233', 30, 'Juan', 'Perez';
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE OR ALTER PROCEDURE SP_AltaVisitante
+CREATE OR ALTER PROCEDURE USP_AltaVisitante
     @Telefono VARCHAR(20),
     @CorreoVisitante VARCHAR(100),
     @NumeroDocumento VARCHAR(15),
@@ -60,11 +60,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_ModificacionVisitante 1, '999888777', 'nuevo-visitante@gmail.com', null, null, null, null, 'Juanceto';
+EXEC USP_ModificacionVisitante 1, '999888777', 'nuevo-visitante@gmail.com', null, null, null, null, 'Juanceto';
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE OR ALTER PROCEDURE SP_ModificacionVisitante
+CREATE OR ALTER PROCEDURE USP_ModificacionVisitante
     @IdVisitante INT,
     @Telefono VARCHAR(20) = NULL,
     @CorreoVisitante VARCHAR(100) = NULL,
@@ -114,11 +114,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_BajaVisitante 2;
+EXEC USP_BajaVisitante 2;
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE OR ALTER PROCEDURE SP_BajaVisitante
+CREATE OR ALTER PROCEDURE USP_BajaVisitante
     @IdVisitante INT
 AS
 BEGIN
@@ -142,12 +142,12 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_AltaTipoVisitante 'Jubilado', 20
+EXEC USP_AltaTipoVisitante 'Jubilado', 20
 SELECT * FROM Turismo.TipoVisitante
 */
 
 
-CREATE OR ALTER PROCEDURE SP_AltaTipoVisitante
+CREATE OR ALTER PROCEDURE USP_AltaTipoVisitante
     @Descripcion VARCHAR(50),
     @Descuento TINYINT
 AS
@@ -166,11 +166,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_ModificacionTipoVisitante 1, null, 15;
+EXEC USP_ModificacionTipoVisitante 1, null, 15;
 SELECT * FROM Turismo.TipoVisitante;
 */
 
-CREATE OR ALTER PROCEDURE SP_ModificacionTipoVisitante
+CREATE OR ALTER PROCEDURE USP_ModificacionTipoVisitante
     @IdTipoVisitante INT,
     @Descripcion VARCHAR(50) = NULL,
     @Descuento TINYINT = NULL
@@ -197,11 +197,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_BajaTipoVisitante 1;
+EXEC USP_BajaTipoVisitante 1;
 SELECT * FROM Turismo.Visitante;
 */
 
-CREATE OR ALTER PROCEDURE SP_BajaTipoVisitante
+CREATE OR ALTER PROCEDURE USP_BajaTipoVisitante
     @IdTipoVisitante INT
 AS
 BEGIN
@@ -222,13 +222,13 @@ GO
 --------------------------------------------------------------------------------
 
 -- =============================================
--- SP_AltaTurno
+-- USP_AltaTurno
 -- Dar de alta un turno para una actividad
 -- =============================================
 /*
-DROP PROCEDURE SP_AltaTurno
+DROP PROCEDURE USP_AltaTurno
 */
-CREATE OR ALTER PROCEDURE SP_AltaTurno
+CREATE OR ALTER PROCEDURE USP_AltaTurno
 @IdActividad INT,
 @HoraInicio TIME(0),
 @HoraFin TIME(0),
@@ -267,13 +267,13 @@ END
 GO
 
 -- =============================================
--- SP_ModificacionTurno
+-- USP_ModificacionTurno
 -- Cambiar el costo, la hora de inicio, la hora de fin o el día de semana de un turno para una actividad
 -- =============================================
 /*
-DROP PROCEDURE SP_ModificacionTurno
+DROP PROCEDURE USP_ModificacionTurno
 */
-CREATE OR ALTER PROCEDURE SP_ModificacionTurno
+CREATE OR ALTER PROCEDURE USP_ModificacionTurno
 @IdTurno INT,
 @HoraInicio TIME(0) = NULL,
 @HoraFin TIME(0) = NULL,
@@ -313,13 +313,13 @@ BEGIN
     GO  
 
 -- =============================================
--- SP_BajaTurno
+-- USP_BajaTurno
 -- Dar de baja un turno de una actividad
 -- =============================================
 /*
-DROP PROCEDURE SP_BajaTurno
+DROP PROCEDURE USP_BajaTurno
 */
-CREATE OR ALTER PROCEDURE SP_BajaTurno
+CREATE OR ALTER PROCEDURE USP_BajaTurno
 @IdTurno INT
 AS
 BEGIN
@@ -358,10 +358,10 @@ GO
 ----------------------------------------
 
 /*
-DROP PROCEDURE SP_AltaActividad
+DROP PROCEDURE USP_AltaActividad
 */
 
-CREATE OR ALTER PROCEDURE SP_AltaActividad
+CREATE OR ALTER PROCEDURE USP_AltaActividad
     @Nombre VARCHAR(50),
     @Costo DECIMAL(10,2),
     @DuracionMinutos INT,
@@ -392,10 +392,10 @@ GO
 ----------------------------------------
 
 /*
-DROP PROCEDURE SP_ModificacionActividad
+DROP PROCEDURE USP_ModificacionActividad
 */
 
-CREATE OR ALTER PROCEDURE SP_ModificacionActividad
+CREATE OR ALTER PROCEDURE USP_ModificacionActividad
     @IdActividad INT,
     @Nombre VARCHAR(50) = NULL,
     @Costo DECIMAL(10,2) = NULL,
@@ -427,10 +427,10 @@ GO
 ----------------------------------------
 
 /*
-DROP PROCEDURE SP_BajaActividad
+DROP PROCEDURE USP_BajaActividad
 */
 
-CREATE OR ALTER PROCEDURE SP_BajaActividad
+CREATE OR ALTER PROCEDURE USP_BajaActividad
     @IdActividad INT
 AS
 BEGIN
@@ -457,7 +457,7 @@ GO
 -- CREACION 
 ----------------------------------------
 
-CREATE OR ALTER PROCEDURE SP_AltaEntradaParque
+CREATE OR ALTER PROCEDURE USP_AltaEntradaParque
     @Costo DECIMAL(10,2),
     @FechaAcceso DATE,
     @IdParque INT
@@ -480,7 +480,7 @@ GO
 -- MODIFICACION
 ----------------------------------------
 
-CREATE OR ALTER PROCEDURE SP_ModificacionEntradaParque
+CREATE OR ALTER PROCEDURE USP_ModificacionEntradaParque
     @IdEntradaParque INT,
     @Costo DECIMAL(10,2) = NULL,
     @FechaAcceso DATE = NULL,
@@ -511,7 +511,7 @@ GO
 -- BAJA 
 ----------------------------------------
 
-CREATE OR ALTER PROCEDURE SP_BajaEntradaParque
+CREATE OR ALTER PROCEDURE USP_BajaEntradaParque
     @IdEntradaParque INT
 AS
 BEGIN

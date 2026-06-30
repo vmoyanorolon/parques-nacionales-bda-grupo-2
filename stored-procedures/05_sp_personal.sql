@@ -8,13 +8,13 @@ USE ParquesNacionales
 GO
 
 -- =============================================
--- SP_ModificacionAsignacion
+-- USP_ModificacionAsignacion
 -- Registrar fecha en la que el guardaparque dejó de trabajar en el parque
 -- =============================================
 /*
-DROP PROCEDURE SP_ModificacionAsignacion
+DROP PROCEDURE USP_ModificacionAsignacion
 */
-CREATE OR ALTER PROCEDURE SP_ModificacionAsignacion
+CREATE OR ALTER PROCEDURE USP_ModificacionAsignacion
 	@IdAsignacion INT,
 	@Motivo VARCHAR(200) = NULL
 AS
@@ -70,13 +70,13 @@ END
 GO
 
 -- =============================================
--- SP_AltaHabilitacion
+-- USP_AltaHabilitacion
 -- Dar de alta a un guía para que pueda dar una actividad
 -- =============================================
 /*
-DROP PROCEDURE SP_AltaHabilitacion
+DROP PROCEDURE USP_AltaHabilitacion
 */
-CREATE OR ALTER PROCEDURE SP_AltaHabilitacion
+CREATE OR ALTER PROCEDURE USP_AltaHabilitacion
 	@IdGuia INT,
 	@IdActividad INT,
 	@DiasVigentes INT
@@ -145,13 +145,13 @@ END
 GO
 
 -- =============================================
--- SP_ModificacionHabilitacion
+-- USP_ModificacionHabilitacion
 -- Cambiar días de vigencia que tiene un guía para dar una actividad
 -- =============================================
 /*
-DROP PROCEDURE SP_ModificacionHabilitacion
+DROP PROCEDURE USP_ModificacionHabilitacion
 */
-CREATE OR ALTER PROCEDURE SP_ModificacionHabilitacion
+CREATE OR ALTER PROCEDURE USP_ModificacionHabilitacion
 	@IdHabilitacion INT,
 	@DiasVigentes INT
 AS
@@ -194,13 +194,13 @@ END
 GO
 
 -- =============================================
--- SP_BajaHabilitacion
+-- USP_BajaHabilitacion
 -- Dar de baja la habilitación de un guía para dar una actividad
 -- =============================================
 /*
-DROP PROCEDURE SP_BajaHabilitacion
+DROP PROCEDURE USP_BajaHabilitacion
 */
-CREATE OR ALTER PROCEDURE SP_BajaHabilitacion
+CREATE OR ALTER PROCEDURE USP_BajaHabilitacion
 	@IdHabilitacion INT
 AS
 BEGIN
@@ -245,9 +245,9 @@ GO
 -- CREACION
 ----------------------------------------
 
---DROP PROCEDURE SP_AltaGuia
+--DROP PROCEDURE USP_AltaGuia
 
-CREATE OR ALTER PROCEDURE SP_AltaGuia
+CREATE OR ALTER PROCEDURE USP_AltaGuia
 	@Telefono VARCHAR(20),
 	@CorreoGuia VARCHAR(100),
 	@NumeroDocumento VARCHAR(15),
@@ -288,9 +288,9 @@ GO
 -- MODIFICACION
 ----------------------------------------
 
---DROP PROCEDURE SP_ModificacionGuia
+--DROP PROCEDURE USP_ModificacionGuia
 
-CREATE OR ALTER PROCEDURE SP_ModificacionGuia
+CREATE OR ALTER PROCEDURE USP_ModificacionGuia
 	@IdGuia INT,
 	@Telefono VARCHAR(20) = NULL,
 	@CorreoGuia VARCHAR(100) = NULL,
@@ -341,9 +341,9 @@ GO
 -- BAJA
 ----------------------------------------
 
---DROP PROCEDURE SP_BajaGuia
+--DROP PROCEDURE USP_BajaGuia
 
-CREATE OR ALTER PROCEDURE SP_BajaGuia
+CREATE OR ALTER PROCEDURE USP_BajaGuia
 	@IdGuia INT
 AS
 BEGIN
@@ -380,9 +380,9 @@ GO
 -- CREACION
 ----------------------------------------
 
---DROP PROCEDURE SP_AltaGuiaTrabajaEnParque
+--DROP PROCEDURE USP_AltaGuiaTrabajaEnParque
 
-CREATE OR ALTER PROCEDURE SP_AltaGuiaTrabajaEnParque
+CREATE OR ALTER PROCEDURE USP_AltaGuiaTrabajaEnParque
 	@IdGuia INT,
 	@IdParque INT
 AS
@@ -420,9 +420,9 @@ GO
 -- BAJA
 ----------------------------------------
 
---DROP PROCEDURE SP_BajaGuiaTrabajaEnParque
+--DROP PROCEDURE USP_BajaGuiaTrabajaEnParque
 
-CREATE OR ALTER PROCEDURE SP_BajaGuiaTrabajaEnParque
+CREATE OR ALTER PROCEDURE USP_BajaGuiaTrabajaEnParque
 	@IdGuia INT,
 	@IdParque INT
 AS
@@ -456,9 +456,9 @@ GO
 -- CREACION
 ----------------------------------------
 
---DROP PROCEDURE SP_AltaGuardaparque
+--DROP PROCEDURE USP_AltaGuardaparque
 
-CREATE OR ALTER PROCEDURE SP_AltaGuardaparque
+CREATE OR ALTER PROCEDURE USP_AltaGuardaparque
 	@Telefono VARCHAR(20),
 	@CorreoGuardaparque VARCHAR(100),
 	@NumeroDocumento VARCHAR(15),
@@ -498,9 +498,9 @@ GO
 -- MODIFICACION
 ----------------------------------------
 
---DROP PROCEDURE SP_ModificacionGuardaparque
+--DROP PROCEDURE USP_ModificacionGuardaparque
 
-CREATE OR ALTER PROCEDURE SP_ModificacionGuardaparque
+CREATE OR ALTER PROCEDURE USP_ModificacionGuardaparque
 	@IdGuardaparque INT,
 	@Telefono VARCHAR(20) = NULL,
 	@CorreoGuardaparque VARCHAR(100) = NULL,
@@ -549,9 +549,9 @@ GO
 -- BAJA
 ----------------------------------------
 
---DROP PROCEDURE SP_BajaGuardaparque
+--DROP PROCEDURE USP_BajaGuardaparque
 
-CREATE OR ALTER PROCEDURE SP_BajaGuardaparque
+CREATE OR ALTER PROCEDURE USP_BajaGuardaparque
 	@IdGuardaparque INT
 AS
 BEGIN
@@ -588,9 +588,9 @@ GO
 -- CREACION
 ----------------------------------------
 
---DROP PROCEDURE SP_AltaAsignacion
+--DROP PROCEDURE USP_AltaAsignacion
 
-CREATE OR ALTER PROCEDURE SP_AltaAsignacion
+CREATE OR ALTER PROCEDURE USP_AltaAsignacion
 	@FechaIngreso DATE,
 	@FechaEgreso DATE = NULL,
 	@Motivo VARCHAR(200) = NULL,
