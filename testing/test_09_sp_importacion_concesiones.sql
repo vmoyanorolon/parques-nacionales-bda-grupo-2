@@ -26,7 +26,7 @@ RECONFIGURE;
 EXEC sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.16.0', N'AllowInProcess', 1;
 
 -- Ruta del archivo a importar. Ajustar según la máquina donde se ejecute el test.
-DECLARE @rutaArchivo VARCHAR(2048) = 'C:\Users\Valen\Desktop\concesiones_31.12.2023.xlsx';
+DECLARE @rutaArchivo VARCHAR(2048) = '';
 
 IF @rutaArchivo = ''
 BEGIN
@@ -44,7 +44,7 @@ SELECT Test = 1, COUNT(*) AS Cantidad FROM Concesiones.OrganizacionConcesionaria
 
 -- Test 2: primera importación del archivo.
 -- Resultado esperado: 28 filas (cantidad de CUITs únicos en el archivo).
-EXEC SP_ImportarOrganizacionConcesionaria @rutaArchivo = @rutaArchivo;
+EXEC USP_ImportarOrganizacionConcesionaria @rutaArchivo = @rutaArchivo;
 
 SELECT Test = 2, * FROM Concesiones.OrganizacionConcesionaria;
 
@@ -65,7 +65,7 @@ HAVING COUNT(*) > 1;
 
 -- Test 5: reimportación del mismo archivo (idempotencia).
 -- Resultado esperado: sigue habiendo 28 filas; no se duplican registros.
-EXEC SP_ImportarOrganizacionConcesionaria @rutaArchivo = @rutaArchivo;
+EXEC USP_ImportarOrganizacionConcesionaria @rutaArchivo = @rutaArchivo;
 
 SELECT Test = 5, COUNT(*) AS Cantidad FROM Concesiones.OrganizacionConcesionaria;
 

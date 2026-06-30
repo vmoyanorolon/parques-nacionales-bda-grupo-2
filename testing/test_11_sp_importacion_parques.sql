@@ -26,7 +26,7 @@ RECONFIGURE;
 EXEC sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.16.0', N'AllowInProcess', 1;
 
 -- Ruta del archivo a importar. Ajustar según la máquina donde se ejecute el test.
-DECLARE @rutaArchivo VARCHAR(2048) = 'C:\Users\Usuario\source\repos\parques-nacionales-bda-grupo-2\dml\imports\parques.xlsx';
+DECLARE @rutaArchivo VARCHAR(2048) = '';
 
 IF @rutaArchivo = ''
 BEGIN
@@ -51,7 +51,7 @@ SELECT Test = 1, COUNT(*) AS Cantidad FROM Parques.Parque;
 -- Resultado esperado: 55 filas (cantidad de nombres únicos en el archivo).
 -- El SP devuelve además su propio resumen (TotalFilasLeidas, etc.) y el detalle del log.
 ----------------------------------------------------------------------
-EXEC SP_ImportarParque @rutaArchivo = @rutaArchivo;
+EXEC USP_ImportarParque @rutaArchivo = @rutaArchivo;
 
 SELECT Test = 2, COUNT(*) AS Cantidad FROM Parques.Parque;
 
@@ -94,7 +94,7 @@ WHERE TipoParque NOT IN ('Parque Nacional','Monumento Natural','Reserva Nacional
 -- Test 7: reimportación del mismo archivo (idempotencia).
 -- Resultado esperado: sigue habiendo 55 filas; no se duplican registros.
 ----------------------------------------------------------------------
-EXEC SP_ImportarParque @rutaArchivo = @rutaArchivo;
+EXEC USP_ImportarParque @rutaArchivo = @rutaArchivo;
 
 SELECT Test = 7, COUNT(*) AS Cantidad FROM Parques.Parque;
 

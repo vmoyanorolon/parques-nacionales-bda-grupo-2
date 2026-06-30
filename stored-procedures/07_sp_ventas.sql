@@ -8,14 +8,14 @@ USE ParquesNacionales
 GO
 
 -- =============================================
--- SP_AltaVenta
+-- USP_AltaVenta
 -- =============================================
 
 /*
-DROP PROCEDURE SP_AltaVenta
+DROP PROCEDURE USP_AltaVenta
 */
 
-CREATE OR ALTER PROCEDURE SP_AltaVenta
+CREATE OR ALTER PROCEDURE USP_AltaVenta
 	@IdVisitante INT,
 	@Fecha DATETIME = NULL,
 	@MetodoDePago VARCHAR(20),
@@ -46,7 +46,7 @@ BEGIN
 		SET @TranPropia = 1
 	END
 	ELSE
-		SAVE TRANSACTION SP_AltaVenta
+		SAVE TRANSACTION USP_AltaVenta
 
 	BEGIN TRY
 		INSERT INTO Ventas.Venta(IdVisitante, Monto, Fecha, MetodoDePago, PuntoDeVenta)
@@ -60,18 +60,18 @@ BEGIN
 		IF @TranPropia = 1 AND @@TRANCOUNT > 0
 			ROLLBACK TRANSACTION
 		ELSE IF XACT_STATE() = 1 -- solo si existe (no es 0) y se pude salvar (no es -1)
-			ROLLBACK TRANSACTION SP_AltaVenta
+			ROLLBACK TRANSACTION USP_AltaVenta
 		;THROW -- progago error
 	END CATCH
 END
 GO
 
 -- =============================================
--- SP_AltaLineasDeEntradaActividad (plural) — versión NUEVO DER
+-- USP_AltaLineasDeEntradaActividad (plural) — versión NUEVO DER
 -- La línea apunta directo a Actividad. Precio = Actividad.Costo.
 -- Cupo = global de la actividad (CupoMaximo vs. lo ya vendido de esa actividad).
 -- =============================================
-CREATE OR ALTER PROCEDURE SP_AltaLineasDeEntradaActividad
+CREATE OR ALTER PROCEDURE USP_AltaLineasDeEntradaActividad
 	@IdVenta INT,
 	@Lineas Ventas.TVP_LineaActividad READONLY,
 	@Factor DECIMAL(10,4) = 1.0
@@ -121,7 +121,7 @@ BEGIN
 		THROW 50000, @errores, 1
 	END
 
-	SAVE TRANSACTION SP_LineasActividad
+	SAVE TRANSACTION USP_LineasActividad
 	BEGIN TRY
 		DECLARE @MaxItem INT = (
 			SELECT ISNULL(MAX(NumeroDeItem), 0)
@@ -152,21 +152,21 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		IF XACT_STATE() = 1
-			ROLLBACK TRANSACTION SP_LineasActividad
+			ROLLBACK TRANSACTION USP_LineasActividad
 		;THROW
 	END CATCH
 END
 GO
 
 -- =============================================
--- SP_AltaLineasDeEntradaParque
+-- USP_AltaLineasDeEntradaParque
 -- =============================================
 
 /*
-DROP PROCEDURE SP_AltaLineaDeEntradaParque
+DROP PROCEDURE USP_AltaLineaDeEntradaParque
 */
 
-CREATE OR ALTER PROCEDURE SP_AltaLineasDeEntradaParque
+CREATE OR ALTER PROCEDURE USP_AltaLineasDeEntradaParque
 	@IdVenta INT,
 	@Lineas Ventas.TVP_LineaParque READONLY,
 	@Factor DECIMAL(10,4) = 1.0
@@ -198,7 +198,7 @@ BEGIN
 		THROW 50000, @errores, 1
 	END
 
-	SAVE TRANSACTION SP_LineasParque
+	SAVE TRANSACTION USP_LineasParque
 	BEGIN TRY
 		DECLARE @MaxItem INT = (
 			SELECT ISNULL(MAX(NumeroDeItem), 0)
@@ -230,7 +230,7 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		IF XACT_STATE() = 1
-			ROLLBACK TRANSACTION SP_LineasParque
+			ROLLBACK TRANSACTION USP_LineasParque
 		;THROW
 	END CATCH
 END

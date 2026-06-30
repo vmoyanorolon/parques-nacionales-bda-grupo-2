@@ -7,7 +7,7 @@
 USE ParquesNacionales
 GO
 
-CREATE OR ALTER PROCEDURE SP_ImportarGuiasCsv
+CREATE OR ALTER PROCEDURE USP_ImportarGuiasCsv
     @rutaArchivo VARCHAR(500)
 AS
 BEGIN
@@ -46,7 +46,7 @@ BEGIN
             CODEPAGE        = ''850'',
             KEEPNULLS
         );';
-    EXEC sp_executesql @sql;
+    EXEC SP_executesql @sql;
 
     -- log para esta corrida (se persiste al final, también se devuelve como resultado)
     

@@ -40,7 +40,7 @@ BEGIN TRY
     VALUES ('Parque Nacional Test Negocio', '18:00', '08:00', 5000.00, 'Río Negro', 1, 'Bariloche', 'Parque Nacional');
     SET @idParqueSetup = SCOPE_IDENTITY();
 
-    -- Parque sin entradas, para el test de SP_ActualizarPrecioEntrada.
+    -- Parque sin entradas, para el test de USP_ActualizarPrecioEntrada.
     INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
     VALUES ('Parque Nacional Test Sin Entradas', '18:00', '08:00', 100.00, 'Mendoza', 2, 'Malargüe', 'Parque Nacional');
     SET @idParqueSinEntradas = SCOPE_IDENTITY();
@@ -103,7 +103,7 @@ BEGIN TRY
     SET @idConcesionInactiva = SCOPE_IDENTITY();
 
     ----------------------------------------
-    -- SP_RegistrarVentaEntradaMasiva
+    -- USP_RegistrarVentaEntradaMasiva
     ----------------------------------------
 
     -- Test 1: venta exitosa con solo líneas de parque (sin descuento).
@@ -114,7 +114,7 @@ BEGIN TRY
 
     INSERT INTO @lineasParqueTest1 (IdEntradaParque, Cantidad) VALUES (@idEntradaSetup, 2);
 
-    EXEC SP_RegistrarVentaEntradaMasiva
+    EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = @idVisitanteSinDesc,
         @MetodoDePago    = 'Efectivo',
         @PuntoDeVenta    = 'Boletería',
@@ -134,7 +134,7 @@ BEGIN TRY
 
     INSERT INTO @lineasActividadTest2 (IdActividad, Cantidad) VALUES (@idActividadTourSetup, 1);
 
-    EXEC SP_RegistrarVentaEntradaMasiva
+    EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = @idVisitanteSinDesc,
         @MetodoDePago    = 'Débito',
         @PuntoDeVenta    = 'Online',
@@ -154,7 +154,7 @@ BEGIN TRY
     INSERT INTO @lineasParqueTest3    (IdEntradaParque, Cantidad) VALUES (@idEntradaSetup, 1);
     INSERT INTO @lineasActividadTest3 (IdActividad, Cantidad)     VALUES (@idActividadTourSetup, 1);
 
-    EXEC SP_RegistrarVentaEntradaMasiva
+    EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = @idVisitanteConDesc, -- 50% de descuento
         @MetodoDePago    = 'Tarjeta',
         @PuntoDeVenta    = 'Boletería',
@@ -167,12 +167,12 @@ BEGIN TRY
     -- Verificar: Monto = 1500.00 (descuento del 50% aplicado a ambas líneas).
 
     ----------------------------------------
-    -- SP_AsignarGuiaATour
+    -- USP_AsignarGuiaATour
     ----------------------------------------
 
     -- Test 4: alta exitosa.
     -- Resultado esperado: inserta la habilitación del guía para la actividad Tour.
-    EXEC SP_AsignarGuiaATour
+    EXEC USP_AsignarGuiaATour
         @IdGuia      = @idGuiaSetup,
         @IdActividad = @idActividadTourSetup,
         @DiasVigentes = 365;
@@ -183,7 +183,7 @@ BEGIN TRY
     -- Test 5: IdGuia inexistente.
     -- Resultado esperado: error 50000 "El guía indicado no existe."
     BEGIN TRY
-        EXEC SP_AsignarGuiaATour @IdGuia = -1, @IdActividad = @idActividadTourSetup, @DiasVigentes = 365;
+        EXEC USP_AsignarGuiaATour @IdGuia = -1, @IdActividad = @idActividadTourSetup, @DiasVigentes = 365;
         PRINT 'Test 5 - FALLO: debería haber lanzado un error por guía inexistente.';
     END TRY
     BEGIN CATCH
@@ -193,7 +193,7 @@ BEGIN TRY
     -- Test 6: DiasVigentes <= 0.
     -- Resultado esperado: error 50000 "Los días vigentes deben ser mayores a 0."
     BEGIN TRY
-        EXEC SP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = @idActividadTourSetup, @DiasVigentes = 0;
+        EXEC USP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = @idActividadTourSetup, @DiasVigentes = 0;
         PRINT 'Test 6 - FALLO: debería haber lanzado un error por DiasVigentes inválido.';
     END TRY
     BEGIN CATCH
@@ -203,7 +203,7 @@ BEGIN TRY
     -- Test 7: IdActividad inexistente.
     -- Resultado esperado: error 50000 "La actividad indicada no existe."
     BEGIN TRY
-        EXEC SP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = -1, @DiasVigentes = 365;
+        EXEC USP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = -1, @DiasVigentes = 365;
         PRINT 'Test 7 - FALLO: debería haber lanzado un error por actividad inexistente.';
     END TRY
     BEGIN CATCH
@@ -213,7 +213,7 @@ BEGIN TRY
     -- Test 8: actividad de tipo Atracción (no Tour).
     -- Resultado esperado: error 50000 "La actividad no es de tipo Tour."
     BEGIN TRY
-        EXEC SP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = @idActividadAtraccionSetup, @DiasVigentes = 365;
+        EXEC USP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = @idActividadAtraccionSetup, @DiasVigentes = 365;
         PRINT 'Test 8 - FALLO: debería haber lanzado un error por actividad no es Tour.';
     END TRY
     BEGIN CATCH
@@ -223,7 +223,7 @@ BEGIN TRY
     -- Test 9: guía que no trabaja en el parque de la actividad.
     -- Resultado esperado: error 50000 "El guía no trabaja en el parque de esta actividad."
     BEGIN TRY
-        EXEC SP_AsignarGuiaATour @IdGuia = @idGuiaSinParque, @IdActividad = @idActividadTourSetup, @DiasVigentes = 365;
+        EXEC USP_AsignarGuiaATour @IdGuia = @idGuiaSinParque, @IdActividad = @idActividadTourSetup, @DiasVigentes = 365;
         PRINT 'Test 9 - FALLO: debería haber lanzado un error por guía no trabaja en el parque.';
     END TRY
     BEGIN CATCH
@@ -234,7 +234,7 @@ BEGIN TRY
     -- El Test 4 ya creó una habilitación de 365 días; esta sigue vigente.
     -- Resultado esperado: error 50000 "El guía ya tiene una habilitación vigente para esta actividad."
     BEGIN TRY
-        EXEC SP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = @idActividadTourSetup, @DiasVigentes = 90;
+        EXEC USP_AsignarGuiaATour @IdGuia = @idGuiaSetup, @IdActividad = @idActividadTourSetup, @DiasVigentes = 90;
         PRINT 'Test 10 - FALLO: debería haber lanzado un error por habilitación vigente duplicada.';
     END TRY
     BEGIN CATCH
@@ -242,14 +242,14 @@ BEGIN TRY
     END CATCH
 
     ----------------------------------------
-    -- SP_RegistrarPagoConcesion
+    -- USP_RegistrarPagoConcesion
     ----------------------------------------
 
     -- Test 11: pago exitoso de una concesión activa.
     -- Resultado esperado: inserta el pago e informa si hay pagos atrasados.
     -- (La concesión inició el 2026-01-01; a la fecha de ejecución pueden
     -- haberse acumulado meses sin pagar — el SP lo calcula y lo imprime).
-    EXEC SP_RegistrarPagoConcesion
+    EXEC USP_RegistrarPagoConcesion
         @IdConcesion = @idConcesionActiva,
         @Monto       = 5000.00;
 
@@ -258,7 +258,7 @@ BEGIN TRY
     -- Test 12: concesión inexistente.
     -- Resultado esperado: error 50000 "La concesión indicada no existe."
     BEGIN TRY
-        EXEC SP_RegistrarPagoConcesion @IdConcesion = -1, @Monto = 5000.00;
+        EXEC USP_RegistrarPagoConcesion @IdConcesion = -1, @Monto = 5000.00;
         PRINT 'Test 12 - FALLO: debería haber lanzado un error por concesión inexistente.';
     END TRY
     BEGIN CATCH
@@ -268,7 +268,7 @@ BEGIN TRY
     -- Test 13: concesión inactiva.
     -- Resultado esperado: error 50000 "La concesión no está activa. No se puede registrar el pago."
     BEGIN TRY
-        EXEC SP_RegistrarPagoConcesion @IdConcesion = @idConcesionInactiva, @Monto = 3000.00;
+        EXEC USP_RegistrarPagoConcesion @IdConcesion = @idConcesionInactiva, @Monto = 3000.00;
         PRINT 'Test 13 - FALLO: debería haber lanzado un error por concesión inactiva.';
     END TRY
     BEGIN CATCH
@@ -278,7 +278,7 @@ BEGIN TRY
     -- Test 14: monto <= 0.
     -- Resultado esperado: error 50000 "El monto debe ser mayor a cero."
     BEGIN TRY
-        EXEC SP_RegistrarPagoConcesion @IdConcesion = @idConcesionActiva, @Monto = 0.00;
+        EXEC USP_RegistrarPagoConcesion @IdConcesion = @idConcesionActiva, @Monto = 0.00;
         PRINT 'Test 14 - FALLO: debería haber lanzado un error por monto inválido.';
     END TRY
     BEGIN CATCH
@@ -286,12 +286,12 @@ BEGIN TRY
     END CATCH
 
     ----------------------------------------
-    -- SP_ActualizarPrecioEntrada
+    -- USP_ActualizarPrecioEntrada
     ----------------------------------------
 
     -- Test 15: actualización exitosa.
     -- Resultado esperado: todas las EntradaParque del parque cambian a 1200.00.
-    EXEC SP_ActualizarPrecioEntrada @IdParque = @idParqueSetup, @NuevoCosto = 1200.00;
+    EXEC USP_ActualizarPrecioEntrada @IdParque = @idParqueSetup, @NuevoCosto = 1200.00;
 
     SELECT Test = 15, * FROM Turismo.EntradaParque WHERE IdParque = @idParqueSetup;
     -- Verificar: Costo = 1200.00.
@@ -299,7 +299,7 @@ BEGIN TRY
     -- Test 16: parque inexistente.
     -- Resultado esperado: error 50000 "El parque indicado no existe."
     BEGIN TRY
-        EXEC SP_ActualizarPrecioEntrada @IdParque = -1, @NuevoCosto = 500.00;
+        EXEC USP_ActualizarPrecioEntrada @IdParque = -1, @NuevoCosto = 500.00;
         PRINT 'Test 16 - FALLO: debería haber lanzado un error por parque inexistente.';
     END TRY
     BEGIN CATCH
@@ -309,7 +309,7 @@ BEGIN TRY
     -- Test 17: nuevo costo <= 0.
     -- Resultado esperado: error 50000 "El nuevo costo debe ser mayor a cero."
     BEGIN TRY
-        EXEC SP_ActualizarPrecioEntrada @IdParque = @idParqueSetup, @NuevoCosto = 0.00;
+        EXEC USP_ActualizarPrecioEntrada @IdParque = @idParqueSetup, @NuevoCosto = 0.00;
         PRINT 'Test 17 - FALLO: debería haber lanzado un error por costo inválido.';
     END TRY
     BEGIN CATCH
@@ -319,7 +319,7 @@ BEGIN TRY
     -- Test 18: parque sin entradas registradas.
     -- Resultado esperado: error 50000 "El parque no tiene entradas registradas para actualizar."
     BEGIN TRY
-        EXEC SP_ActualizarPrecioEntrada @IdParque = @idParqueSinEntradas, @NuevoCosto = 800.00;
+        EXEC USP_ActualizarPrecioEntrada @IdParque = @idParqueSinEntradas, @NuevoCosto = 800.00;
         PRINT 'Test 18 - FALLO: debería haber lanzado un error por parque sin entradas.';
     END TRY
     BEGIN CATCH
@@ -340,7 +340,7 @@ BEGIN TRY
     DECLARE @idVentaTest19 INT;
     DECLARE @lineasParqueTest19 Ventas.TVP_LineaParque;
     INSERT INTO @lineasParqueTest19 (IdEntradaParque, Cantidad) VALUES (1, 1);
-    EXEC SP_RegistrarVentaEntradaMasiva
+    EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = -1,
         @MetodoDePago    = 'Efectivo',
         @PuntoDeVenta    = 'Boletería',
@@ -360,7 +360,7 @@ BEGIN TRY
     DECLARE @idVentaTest20 INT;
     DECLARE @lineasParqueVaciasT20   Ventas.TVP_LineaParque;
     DECLARE @lineasActividadVaciasT20 Ventas.TVP_LineaActividad;
-    EXEC SP_RegistrarVentaEntradaMasiva
+    EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = -1,
         @MetodoDePago    = 'Efectivo',
         @PuntoDeVenta    = 'Boletería',

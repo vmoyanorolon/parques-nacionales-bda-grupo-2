@@ -12,11 +12,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_AltaParque 'Parque Nacional Iguazú', '18:00', '08:00', 67620.00, 'Misiones', 1, 'Puerto Iguazú', 'Parque Nacional';
+EXEC USP_AltaParque 'Parque Nacional Iguazú', '18:00', '08:00', 67620.00, 'Misiones', 1, 'Puerto Iguazú', 'Parque Nacional';
 SELECT * FROM Parques.Parque
 */
 
-CREATE OR ALTER PROCEDURE SP_AltaParque
+CREATE OR ALTER PROCEDURE USP_AltaParque
     @Nombre VARCHAR(50),
     @HorarioCierre TIME,
     @HorarioApertura TIME,
@@ -55,11 +55,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_ModificacionParque 1, NULL, '20:00', NULL, NULL, NULL, 123;
+EXEC USP_ModificacionParque 1, NULL, '20:00', NULL, NULL, NULL, 123;
 SELECT * FROM Parques.Parque
 */
 
-CREATE OR ALTER PROCEDURE SP_ModificacionParque
+CREATE OR ALTER PROCEDURE USP_ModificacionParque
     @IdParque INT,
     @Nombre VARCHAR(50) = NULL,
     @HorarioCierre TIME = NULL,
@@ -105,11 +105,11 @@ GO
 ----------------------------------------
 
 /*
-EXEC SP_BajaParque 1;
+EXEC USP_BajaParque 1;
 SELECT * FROM Parques.Parque
 */
 
-CREATE OR ALTER PROCEDURE SP_BajaParque
+CREATE OR ALTER PROCEDURE USP_BajaParque
     @IdParque INT
 AS
 BEGIN
