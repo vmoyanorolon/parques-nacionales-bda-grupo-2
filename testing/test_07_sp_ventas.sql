@@ -52,7 +52,7 @@ BEGIN TRY
 
     DECLARE @idVisitanteSetup INT, @idParqueSetup INT,
             @idEntradaSetup   INT, @idActividadSetup INT,
-            @idVentaTest1     INT;
+            @idVentaTest1     INT, @idTurnoSetup INT;
 
     INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
     VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
@@ -71,6 +71,13 @@ BEGIN TRY
     INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
     VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
     SET @idActividadSetup = SCOPE_IDENTITY();
+
+    -- Turno Lunes 09:00-11:00 (DiaDeSemana=2, Domingo=1). Todas las
+    -- l\xedneas de actividad de este archivo usan fechas dentro de esta ventana,
+    -- salvo el Test 14 que la usa a prop\xf3sito fuera de rango.
+    INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+    VALUES ('09:00', '11:00', 2, @idActividadSetup);
+    SET @idTurnoSetup = SCOPE_IDENTITY();
 
     ----------------------------------------
     -- USP_AltaVenta
@@ -116,6 +123,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -169,6 +179,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -199,6 +212,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -229,6 +245,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -240,7 +259,7 @@ BEGIN TRY
     -- Test 8: alta exitosa con una línea de actividad.
     -- Resultado esperado: inserta la línea y acumula el subtotal en Venta.Monto (Monto = 1500.00 * 1 = 1500.00; no hay líneas de parque tras las recuperaciones).
     DECLARE @lineasActividadTest8 Ventas.TVP_LineaActividad;
-    INSERT INTO @lineasActividadTest8 (IdActividad, Cantidad) VALUES (@idActividadSetup, 1);
+    INSERT INTO @lineasActividadTest8 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 1, '20260706 09:30');
 
     EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest8;
     SET XACT_ABORT OFF;
@@ -248,14 +267,14 @@ BEGIN TRY
     SELECT Test = 8, * FROM Ventas.Venta WHERE IdVenta = @idVentaTest1;
     SELECT Test = 8, * FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @idVentaTest1;
 
-    -- Test 9: cupo de la actividad excedido.
-    -- El Test 8 ya vendió 1 lugar; intentamos vender 2 más (1+2=3 > CupoMaximo=2).
-    -- Resultado esperado: error 50000 "Alguna actividad supera la cantidad de cupos disponibles."
+    -- Test 9: cupo del turno excedido para la misma fecha del Test 8 (2026-07-06).
+    -- El Test 8 ya vendi\xf3 1 lugar en esa fecha; intentamos vender 2 m\xe1s (1+2=3 > CupoMaximo=2).
+    -- Resultado esperado: error 50000 "Alg\xfan turno supera la cantidad de cupos disponibles para la fecha indicada."
     -- Este test se ejecuta inmediatamente después del Test 8 (antes de los demás tests
     -- de error) para que el cupo consumido en Test 8 esté disponible.
     BEGIN TRY
         DECLARE @lineasActividadTest9 Ventas.TVP_LineaActividad;
-        INSERT INTO @lineasActividadTest9 (IdActividad, Cantidad) VALUES (@idActividadSetup, 2);
+        INSERT INTO @lineasActividadTest9 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 2, '20260706 09:45');
         EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest9;
         PRINT 'Test 9 - FALLO: debería haber lanzado un error por cupo excedido.';
     END TRY
@@ -277,6 +296,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -285,7 +307,7 @@ BEGIN TRY
     -- Resultado esperado: error 50000 "La venta indicada no existe."
     BEGIN TRY
         DECLARE @lineasActividadTest10 Ventas.TVP_LineaActividad;
-        INSERT INTO @lineasActividadTest10 (IdActividad, Cantidad) VALUES (@idActividadSetup, 1);
+        INSERT INTO @lineasActividadTest10 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 1, '20260706 09:30');
         EXEC USP_AltaLineasDeEntradaActividad @IdVenta = -1, @Lineas = @lineasActividadTest10;
         PRINT 'Test 10 - FALLO: debería haber lanzado un error por venta inexistente.';
     END TRY
@@ -307,6 +329,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -315,7 +340,7 @@ BEGIN TRY
     -- Resultado esperado: error 50000 "Hay líneas de actividad con cantidad menor o igual a cero."
     BEGIN TRY
         DECLARE @lineasActividadTest11 Ventas.TVP_LineaActividad;
-        INSERT INTO @lineasActividadTest11 (IdActividad, Cantidad) VALUES (@idActividadSetup, 0);
+        INSERT INTO @lineasActividadTest11 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 0, '20260706 09:30');
         EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest11;
         PRINT 'Test 11 - FALLO: debería haber lanzado un error por cantidad inválida.';
     END TRY
@@ -337,6 +362,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -345,7 +373,7 @@ BEGIN TRY
     -- Resultado esperado: error 50000 "Alguna actividad indicada no existe."
     BEGIN TRY
         DECLARE @lineasActividadTest12 Ventas.TVP_LineaActividad;
-        INSERT INTO @lineasActividadTest12 (IdActividad, Cantidad) VALUES (-1, 1);
+        INSERT INTO @lineasActividadTest12 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (-1, 1, '20260706 09:30');
         EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest12;
         PRINT 'Test 12 - FALLO: debería haber lanzado un error por actividad inexistente.';
     END TRY
@@ -367,6 +395,9 @@ BEGIN TRY
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
         SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+        VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
         EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boletería', @IdVenta=@idVentaTest1 OUTPUT;
         SET XACT_ABORT OFF;
     END
@@ -380,8 +411,69 @@ BEGIN TRY
     SELECT Test = 13, * FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @idVentaTest1;
     -- Verificar: 0 filas (las recuperaciones anteriores revirtieron la línea del Test 8).
 
+     -- Test 14: FechaHoraAsistencia fuera del horario de cualquier turno de la actividad
+    -- (el turno de @idActividadSetup es Lunes 09:00-11:00; 15:00 queda fuera de rango).
+    -- Resultado esperado: error 50000 "Alguna l\xednea de actividad no corresponde a ning\xfan turno."
+    BEGIN TRY
+        DECLARE @lineasActividadTest14 Ventas.TVP_LineaActividad;
+        INSERT INTO @lineasActividadTest14 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 1, '20260706 15:00');
+        EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest14;
+        PRINT 'Test 14 - FALLO: deber\xeda haber lanzado un error por fecha/horario sin turno.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 14 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    END CATCH
+
+    IF XACT_STATE() = -1  -- Recovery #9
+    BEGIN
+        ROLLBACK TRANSACTION; BEGIN TRANSACTION;
+        INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
+        VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
+        SET @idVisitanteSetup = SCOPE_IDENTITY();
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        SET @idParqueSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
+        SET @idEntradaSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
+        VALUES ('Kayak Test Ventas', 'Tour', 1500.00, 90, 2, @idParqueSetup);
+        SET @idActividadSetup = SCOPE_IDENTITY();
+        INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad) VALUES ('09:00', '11:00', 2, @idActividadSetup);
+        SET @idTurnoSetup = SCOPE_IDENTITY();
+        EXEC USP_AltaVenta @IdVisitante=@idVisitanteSetup, @MetodoDePago='Efectivo', @PuntoDeVenta='Boleter\xeda', @IdVenta=@idVentaTest1 OUTPUT;
+        SET XACT_ABORT OFF;
+    END
+
+    -- Test 15: cupo independiente por fecha. El Test 8 llen\xf3 1/2 del turno para 2026-07-06;
+    -- ac\xe1 se vende para 2026-07-13 (mismo turno, otra fecha), CupoMaximo=2, no deber\xeda verse
+    -- afectado por lo consumido en la otra fecha.
+    -- Resultado esperado: inserta sin error y deja el turno en Estado = 'cupo lleno' para esa fecha.
+    DECLARE @lineasActividadTest15 Ventas.TVP_LineaActividad;
+    INSERT INTO @lineasActividadTest15 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 2, '20260713 09:30');
+    EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest15;
+    SET XACT_ABORT OFF;
+
+    SELECT Test = 15, * FROM Ventas.LineaDeEntradaActividad WHERE IdVenta = @idVentaTest1 AND CAST(FechaHoraAsistencia AS DATE) = '2026-07-13';
+
+    -- Test 16: Turno.Estado pasa a 'cupo lleno' tras el Test 15.
+    -- Resultado esperado: 1 fila con Estado = 'cupo lleno'.
+    SELECT Test = 16, IdTurno, Estado FROM Turismo.Turno WHERE IdTurno = @idTurnoSetup;
+
+    -- Test 17: reventa sobre un turno ya lleno para esa misma fecha (2026-07-13).
+    -- Resultado esperado: error 50000 "Alg\xfan turno supera la cantidad de cupos disponibles para la fecha indicada."
+    BEGIN TRY
+        DECLARE @lineasActividadTest17 Ventas.TVP_LineaActividad;
+        INSERT INTO @lineasActividadTest17 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadSetup, 1, '20260713 10:00');
+        EXEC USP_AltaLineasDeEntradaActividad @IdVenta = @idVentaTest1, @Lineas = @lineasActividadTest17;
+        PRINT 'Test 17 - FALLO: deber\xeda haber lanzado un error por cupo excedido.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 17 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    END CATCH
+
+
     ROLLBACK TRANSACTION;
-    PRINT 'Suite completa de Ventas (13 tests) finalizada sin errores inesperados.';
+    PRINT 'Suite completa de Ventas (17 tests) finalizada sin errores inesperados.';
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0
