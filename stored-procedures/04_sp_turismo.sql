@@ -250,8 +250,8 @@ BEGIN
     BEGIN TRANSACTION
     BEGIN TRY
         
-        INSERT INTO Turismo.Turno(IdActividad, HoraInicio, HoraFin, DiaDeSemana)
-        VALUES(@IdActividad, @HoraInicio, @HoraFin, @DiaDeSemana)
+        INSERT INTO Turismo.Turno(IdActividad, HoraInicio, HoraFin, DiaDeSemana, Estado)
+        VALUES(@IdActividad, @HoraInicio, @HoraFin, @DiaDeSemana, 'disponible')
         SELECT @IdTurno = SCOPE_IDENTITY()
         
         COMMIT TRANSACTION
@@ -282,6 +282,8 @@ AS
 BEGIN
     SET NOCOUNT ON
     SET XACT_ABORT ON
+    SET DATEFIRST 7 -- Domingo=1
+    DECLARE @IdActividad INT, @HoraInicioActual TIME(0), @HoraFinActual TIME(0), @DiaDeSemanaActual TINYINT
 
     IF NOT EXISTS(
     SELECT 1
@@ -289,6 +291,23 @@ BEGIN
     WHERE IdTurno = @IdTurno
     )
         THROW 50000, 'El turno indicado no existe, no se hará ninguna modificación',1
+
+    SELECT @IdActividad = IdActividad, @HoraInicioActual = HoraInicio, @HoraFinActual = HoraFin, @DiaDeSemanaActual = DiaDeSemana
+    FROM Turismo.Turno
+    WHERE IdTurno = @IdTurno
+
+    -- Si se pide cambiar horario o día, no debe haber asistencias ya registradas para el turno tal como está hoy
+    IF (@HoraInicio IS NOT NULL OR @HoraFin IS NOT NULL OR @DiaDeSemana IS NOT NULL)
+       AND EXISTS(
+            SELECT 1
+            FROM Ventas.LineaDeEntradaActividad l
+            WHERE l.IdActividad = @IdActividad
+              AND DATEPART(WEEKDAY, l.FechaHoraAsistencia) = @DiaDeSemanaActual
+              AND CAST(l.FechaHoraAsistencia AS TIME) >= @HoraInicioActual
+              AND CAST(l.FechaHoraAsistencia AS TIME) < @HoraFinActual
+     )
+    THROW 50000, 'No se puede modificar el horario o el día del turno: ya tiene asistencias registradas.', 1
+
 
     BEGIN TRANSACTION
     BEGIN TRY
@@ -325,13 +344,30 @@ AS
 BEGIN
     SET NOCOUNT ON
     SET XACT_ABORT ON
+    SET DATEFIRST 7
+
+    DECLARE @IdActividad INT, @HoraInicio TIME(0), @HoraFin TIME(0), @DiaDeSemana TINYINT
 
     IF NOT EXISTS(
         SELECT 1
         FROM Turismo.Turno
         WHERE IdTurno = @IdTurno
     )
-        THROW 50000,'El turno indicado no existe, no se hará ningún cambio', 1
+    THROW 50000,'El turno indicado no existe, no se hará ningún cambio', 1
+
+    SELECT @IdActividad = IdActividad, @HoraInicio = HoraInicio, @HoraFin = HoraFin, @DiaDeSemana = DiaDeSemana
+    FROM Turismo.Turno
+    WHERE IdTurno = @IdTurno
+
+    IF EXISTS(
+        SELECT 1
+        FROM Ventas.LineaDeEntradaActividad l
+        WHERE l.IdActividad = @IdActividad
+          AND DATEPART(WEEKDAY, l.FechaHoraAsistencia) = @DiaDeSemana
+          AND CAST(l.FechaHoraAsistencia AS TIME) >= @HoraInicio
+          AND CAST(l.FechaHoraAsistencia AS TIME) < @HoraFin
+    )
+    THROW 50000, 'No se puede eliminar el turno: tiene asistencias registradas.', 1
 
     BEGIN TRANSACTION
     BEGIN TRY

@@ -95,6 +95,7 @@ BEGIN
 		HoraInicio TIME(0) NOT NULL,
 		HoraFin TIME(0) NOT NULL,
 		DiaDeSemana TINYINT NOT NULL CONSTRAINT CK_Turno_DiaDeSemana CHECK (DiaDeSemana BETWEEN 1 AND 7), -- Domingo = 1
+		Estado VARCHAR(30) NOT NULL CONSTRAINT CK_Turno_Estado CHECK(Estado IN('disponible','cupo lleno')) CONSTRAINT DF_Turno_Estado DEFAULT('disponible'),
 		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
 	);
 END
@@ -310,6 +311,7 @@ BEGIN
 		Cantidad TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaActividad_Cantidad CHECK(Cantidad >0),
 		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
 		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaActividad_NumeroDeItem CHECK(NumeroDeItem >0),
+		FechaHoraAsistencia DATETIME NOT NULL,
 		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
 		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad),
 

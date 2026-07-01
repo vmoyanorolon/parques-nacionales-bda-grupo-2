@@ -19,6 +19,7 @@ IF TYPE_ID('Ventas.TVP_LineaActividad') IS NOT NULL DROP TYPE Ventas.TVP_LineaAc
 GO
 CREATE TYPE Ventas.TVP_LineaActividad AS TABLE (
 	IdActividad INT NOT NULL,
-	Cantidad TINYINT NOT NULL
+	Cantidad TINYINT NOT NULL,
+	FechaHoraAsistencia DATETIME NOT NULL
 )
 GO

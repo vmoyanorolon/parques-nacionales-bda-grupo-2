@@ -362,7 +362,7 @@ BEGIN TRY
     SET @idActividadTurnoSetup = SCOPE_IDENTITY();
 
     -- Test 23: alta exitosa.
-    -- Resultado esperado: inserta el turno.
+    -- Resultado esperado: inserta el turno con Estado = 'disponible' por defecto.
     EXEC USP_AltaTurno @IdActividad = @idActividadTurnoSetup, @HoraInicio = '10:00', @HoraFin = '12:00', @DiaDeSemana = 2;
     SET @idTurnoTest23 = IDENT_CURRENT('Turismo.Turno');
 
@@ -716,8 +716,67 @@ BEGIN TRY
         PRINT 'Test 50 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
     END CATCH
 
+    ----------------------------------------
+    -- USP_ModificacionTurno / USP_BajaTurno con asistencias asociadas
+    ----------------------------------------
+
+    -- Setup para Test 51 y 52: un turno con una asistencia ya registrada
+    -- (insertada directo en Ventas.LineaDeEntradaActividad, sin pasar por
+    -- USP_AltaLineasDeEntradaActividad, para aislar el test de USP_ModificacionTurno/USP_BajaTurno).
+    DECLARE @idActividadTest51 INT, @idTurnoTest51 INT, @idVisitanteTest51 INT, @idVentaTest51 INT;
+
+    INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
+    VALUES ('Sendero Test Asistencia', 'Tour', 800.00, 60, 5, @idParqueSetup);
+    SET @idActividadTest51 = SCOPE_IDENTITY();
+
+    EXEC USP_AltaTurno @IdActividad = @idActividadTest51, @HoraInicio = '09:00', @HoraFin = '10:00', @DiaDeSemana = 3;
+    SET @idTurnoTest51 = IDENT_CURRENT('Turismo.Turno');
+
+    INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
+    VALUES ('1100000098', 'visitante.turno@gmail.com', '99999998', 'DNI', '20999999981', 35, 'Setup', 'Turno');
+    SET @idVisitanteTest51 = SCOPE_IDENTITY();
+
+    INSERT INTO Ventas.Venta (Monto, MetodoDePago, PuntoDeVenta, IdVisitante)
+    VALUES (800.00, 'Efectivo', 'Boleter\xeda Central', @idVisitanteTest51);
+    SET @idVentaTest51 = SCOPE_IDENTITY();
+
+    -- Martes = 3 (Domingo=1). Se usa una fecha fija que caiga en martes dentro del horario del turno.
+    INSERT INTO Ventas.LineaDeEntradaActividad (PrecioUnitario, Cantidad, NumeroDeItem, FechaHoraAsistencia, IdVenta, IdActividad)
+    VALUES (800.00, 1, 1, '20260707 09:30', @idVentaTest51, @idActividadTest51); -- 2026-07-07 es martes
+
+    -- Test 51: modificar el horario de un turno que ya tiene asistencias registradas.
+    -- Resultado esperado: error 50000 "No se puede modificar el horario o el día del turno: ya tiene asistencias registradas."
+    BEGIN TRY
+        EXEC USP_ModificacionTurno @IdTurno = @idTurnoTest51, @HoraInicio = '09:30';
+        PRINT 'Test 51 - FALLO: deber\xeda haber lanzado un error por asistencias asociadas.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 51 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    END CATCH
+
+    -- Test 52: eliminar un turno que ya tiene asistencias registradas.
+    -- Resultado esperado: error 50000 "No se puede eliminar el turno: tiene asistencias registradas."
+    BEGIN TRY
+        EXEC USP_BajaTurno @IdTurno = @idTurnoTest51;
+        PRINT 'Test 52 - FALLO: deber\xeda haber lanzado un error por asistencias asociadas.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 52 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    END CATCH
+
+    -- Test 53: CK_Turno_Estado rechaza un valor fuera del dominio permitido.
+    -- Resultado esperado: error del motor por violar el CHECK ('disponible' | 'cupo lleno').
+    BEGIN TRY
+        UPDATE Turismo.Turno SET Estado = 'agotado' WHERE IdTurno = @idTurnoTest51;
+        PRINT 'Test 53 - FALLO: deber\xeda haber lanzado un error por CK_Turno_Estado.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 53 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    END CATCH
+
+
     ROLLBACK TRANSACTION;
-    PRINT 'Suite completa de Turismo (50 tests) finalizada sin errores inesperados.';
+    PRINT 'Suite completa de Turismo (53 tests) finalizada sin errores inesperados.';
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0
