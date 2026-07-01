@@ -322,7 +322,7 @@ BEGIN
 
     BEGIN TRANSACTION
         UPDATE Concesiones.Concesion
-        SET EstadoConcesion = 'Inactivo'
+        SET EstadoConcesion = 'Inactivo', FechaFin = GETDATE()
         WHERE IdConcesion = @IdConcesion
     COMMIT TRANSACTION
 
