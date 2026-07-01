@@ -37,7 +37,11 @@ BEGIN
 		TipoParque VARCHAR(50) NOT NULL CONSTRAINT CK_Parque_TipoParque CHECK(TipoParque IN('Parque Nacional',
 						'Monumento Natural','Reserva Nacional',
 						'Reserva Natural Estricta','Reserva Natural Silvestre',
-						'Reserva Natural Educativa'))
+						'Reserva Natural Educativa')),
+		Latitud  DECIMAL(9,6) NULL,   
+		Longitud DECIMAL(9,6) NULL, 
+		Departamento VARCHAR(50) NULL,  
+		CodigoPostal VARCHAR(12) NULL  
 		)
 END
 
