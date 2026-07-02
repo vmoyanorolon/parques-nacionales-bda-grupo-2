@@ -175,7 +175,9 @@ BEGIN
         IdLog             INT IDENTITY(1,1) PRIMARY KEY,
         NombreArchivo     VARCHAR(500) NOT NULL,
         FechaImportacion  DATETIME NOT NULL DEFAULT GETDATE(),
-        TipoEvento        VARCHAR(30) CONSTRAINT CK_LogImportacionConcesionaria_TipoEvento CHECK(TipoEvento IN ('ERROR_VALIDACION','DUPLICADO')) NOT NULL,
+        TipoEvento        VARCHAR(30) CONSTRAINT CK_LogImportacionConcesionaria_TipoEvento CHECK(TipoEvento IN (
+                               'ERROR_VALIDACION','DUPLICADO','SIN_MATCH_PARQUE',
+                               'LIMITE_HECTAREAS_ALCANZADO','ERROR_FERIADOS','CONCESION_CREADA')) NOT NULL,
         CuitOrigen        VARCHAR(50) NULL,
         RazonSocialOrigen VARCHAR(200) NULL,
         Motivo            VARCHAR(500) NOT NULL
