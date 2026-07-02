@@ -36,13 +36,13 @@ BEGIN TRY
             @idConcesionInactiva      INT,
             @idParqueSinEntradas      INT;
 
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Negocio', '18:00', '08:00', 5000.00, 'Río Negro', 1, 'Bariloche', 'Parque Nacional');
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Negocio', '18:00', '08:00', 5000.00, 600.00, 'Río Negro', 1, 'Bariloche', 'Parque Nacional');
     SET @idParqueSetup = SCOPE_IDENTITY();
 
     -- Parque sin entradas, para el test de USP_ActualizarPrecioEntrada.
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Sin Entradas', '18:00', '08:00', 100.00, 'Mendoza', 2, 'Malargüe', 'Parque Nacional');
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Sin Entradas', '18:00', '08:00', 100.00, 900.00, 'Mendoza', 2, 'Malargüe', 'Parque Nacional');
     SET @idParqueSinEntradas = SCOPE_IDENTITY();
 
     INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque)
@@ -53,6 +53,15 @@ BEGIN TRY
     INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
     VALUES ('Trekking Test Negocio', 'Tour', 2000.00, 180, 50, @idParqueSetup);
     SET @idActividadTourSetup = SCOPE_IDENTITY();
+
+    -- Turno del Tour. DiaDeSemana se calcula a partir de la misma fecha que usan
+    -- las líneas de actividad más abajo, para que no puedan desincronizarse.
+    DECLARE @fechaAsistenciaSetup DATETIME = '2026-07-06 10:00';
+    DECLARE @diaSemanaSetup TINYINT;
+    SET DATEFIRST 7; -- Domingo = 1, igual que USP_AltaLineasDeEntradaActividad
+    SET @diaSemanaSetup = DATEPART(WEEKDAY, @fechaAsistenciaSetup);
+    INSERT INTO Turismo.Turno (HoraInicio, HoraFin, DiaDeSemana, IdActividad)
+    VALUES ('09:00', '11:00', @diaSemanaSetup, @idActividadTourSetup);
 
     -- Actividad de tipo Atracción (para el test de actividad-no-es-Tour).
     INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
@@ -132,7 +141,7 @@ BEGIN TRY
     DECLARE @lineasParqueVacias Ventas.TVP_LineaParque; -- TVP vacío reutilizable
     DECLARE @lineasActividadTest2 Ventas.TVP_LineaActividad;
 
-    INSERT INTO @lineasActividadTest2 (IdActividad, Cantidad) VALUES (@idActividadTourSetup, 1);
+    INSERT INTO @lineasActividadTest2 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadTourSetup, 1, @fechaAsistenciaSetup);
 
     EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = @idVisitanteSinDesc,
@@ -152,7 +161,7 @@ BEGIN TRY
     DECLARE @lineasActividadTest3 Ventas.TVP_LineaActividad;
 
     INSERT INTO @lineasParqueTest3    (IdEntradaParque, Cantidad) VALUES (@idEntradaSetup, 1);
-    INSERT INTO @lineasActividadTest3 (IdActividad, Cantidad)     VALUES (@idActividadTourSetup, 1);
+    INSERT INTO @lineasActividadTest3 (IdActividad, Cantidad, FechaHoraAsistencia) VALUES (@idActividadTourSetup, 1, DATEADD(MINUTE, 30, @fechaAsistenciaSetup));
 
     EXEC USP_RegistrarVentaEntradaMasiva
         @IdVisitante     = @idVisitanteConDesc, -- 50% de descuento

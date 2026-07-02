@@ -31,6 +31,8 @@ BEGIN
 		HorarioCierre TIME NOT NULL,
 		HorarioApertura TIME NOT NULL,
 		Superficie DECIMAL (10,2) NOT NULL CONSTRAINT CK_Parque_Superficie CHECK(Superficie > 0),
+		-- Regla de negocio: si no se especifica el costo de la hectárea, automáticamente será de 500.00 (contempla importaciones)
+		CostoHectarea DECIMAL(10,2) NOT NULL CONSTRAINT CK_Parque_CostoHectarea CHECK(CostoHectarea > 0) CONSTRAINT DF_Parque_CostoHectarea DEFAULT(500.00),
 		Provincia VARCHAR(50) NOT NULL,
 		Numero INT NOT NULL,
 		Localidad VARCHAR(50) NOT NULL,
