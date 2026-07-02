@@ -25,8 +25,8 @@ BEGIN TRY
     -- depender de SPs de otros módulos dentro de este script.
     DECLARE @idParqueSetup INT, @idActividadSetup INT;
 
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Personal', '18:00', '08:00', 1000.00, 'Neuquén', 1, 'San Martín de los Andes', 'Parque Nacional');
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Personal', '18:00', '08:00', 1000.00, 900.00, 'Neuquén', 1, 'San Martín de los Andes', 'Parque Nacional');
     SET @idParqueSetup = SCOPE_IDENTITY();
 
     INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)

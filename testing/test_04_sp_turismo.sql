@@ -348,8 +348,8 @@ BEGIN TRY
     ----------------------------------------
 
     DECLARE @idParqueSetup INT;
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 1200.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
     SET @idParqueSetup = SCOPE_IDENTITY();
 
     ----------------------------------------
@@ -393,8 +393,8 @@ BEGIN TRY
         ROLLBACK TRANSACTION;
 
         BEGIN TRANSACTION;
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 1200.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
 
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
@@ -431,8 +431,8 @@ BEGIN TRY
     BEGIN
         ROLLBACK TRANSACTION;
         BEGIN TRANSACTION;
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 1200.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Cabalgata Test Turno', 'Tour', 500.00, 90, 10, @idParqueSetup);
@@ -459,8 +459,8 @@ BEGIN TRY
         ROLLBACK TRANSACTION;
         BEGIN TRANSACTION;
 
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Turismo', '18:00', '08:00', 1500.00, 1200.00, 'Misiones', 1, 'Puerto Iguazu', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
         VALUES ('Cabalgata Test Turno', 'Tour', 500.00, 90, 10, @idParqueSetup);

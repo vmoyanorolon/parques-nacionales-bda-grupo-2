@@ -21,6 +21,7 @@ CREATE OR ALTER PROCEDURE USP_AltaParque
     @HorarioCierre TIME,
     @HorarioApertura TIME,
     @Superficie DECIMAL(10,2),
+    @CostoHectarea DECIMAL(10,2),
     @Provincia VARCHAR(50),
     @Numero INT,
     @Localidad VARCHAR(50),
@@ -35,6 +36,10 @@ BEGIN
     IF EXISTS (SELECT 1 FROM Parques.Parque WHERE Nombre = @Nombre)
         SET @errores += '- Ya existe un parque con ese nombre.' + CHAR(13)
     
+    IF @CostoHectarea IS NOT NULL AND @CostoHectarea <= 0
+        SET @errores += '- El costo por hectárea debe ser mayor a cero.' + CHAR(13)
+
+
     IF @errores <> ''
     BEGIN
         SET @errores = 'No se pudo dar de alta el parque:' + CHAR(13) + @errores;
@@ -42,9 +47,9 @@ BEGIN
     END
 
     INSERT INTO Parques.Parque
-        (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
+        (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
     VALUES
-        (@Nombre, @HorarioCierre, @HorarioApertura, @Superficie, @Provincia, @Numero, @Localidad, @TipoParque)
+        (@Nombre, @HorarioCierre, @HorarioApertura, @Superficie, @CostoHectarea, @Provincia, @Numero, @Localidad, @TipoParque)
     
     SET @IdParque = SCOPE_IDENTITY();
 END
@@ -65,6 +70,7 @@ CREATE OR ALTER PROCEDURE USP_ModificacionParque
     @HorarioCierre TIME = NULL,
     @HorarioApertura TIME = NULL,
     @Superficie DECIMAL(10,2) = NULL,
+    @CostoHectarea DECIMAL(10,2) = NULL,
     @Provincia VARCHAR(50) = NULL,
     @Numero INT = NULL,
     @Localidad VARCHAR(50) = NULL,
@@ -81,6 +87,9 @@ BEGIN
     IF @Nombre IS NOT NULL AND EXISTS (SELECT 1 FROM Parques.Parque WHERE Nombre = @Nombre AND IdParque <> @IdParque)
     SET @errores += '- Ya existe otro parque con ese nombre.' + CHAR(13)
 
+    IF @CostoHectarea IS NOT NULL AND @CostoHectarea <= 0
+    SET @errores += '- El costo por hectárea debe ser mayor a cero.' + CHAR(13)
+
     IF @errores <> ''
     BEGIN
         SET @errores = 'No se pudo modificar el parque:' + CHAR(13) + @errores;
@@ -92,6 +101,7 @@ BEGIN
         HorarioCierre = COALESCE(@HorarioCierre, HorarioCierre),
         HorarioApertura = COALESCE(@HorarioApertura, HorarioApertura),
         Superficie = COALESCE(@Superficie, Superficie),
+        CostoHectarea = COALESCE(@CostoHectarea, CostoHectarea),
         Provincia = COALESCE(@Provincia, Provincia),
         Numero = COALESCE(@Numero, Numero),
         Localidad = COALESCE(@Localidad, Localidad),

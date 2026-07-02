@@ -52,8 +52,9 @@ BEGIN TRY
     -- Setup compartido: parque necesario para las concesiones (Superficie = 1000.00,
     -- por lo que el límite legal del 10% -Art. 12, Ley 22.351- es 100.00).
     -- Se inserta directamente para no depender de SPs de otros módulos dentro de este script.
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Concesiones', '18:00', '08:00', 1000.00, 'Chubut', 1, 'Esquel', 'Parque Nacional');
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Concesiones', '18:00', '08:00', 1000.00, 1000.00, 'Chubut', 1, 'Esquel', 'Parque Nacional');
+
     SET @idParqueSetup = SCOPE_IDENTITY();
 
     ----------------------------------------

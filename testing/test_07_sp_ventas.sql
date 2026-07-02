@@ -57,9 +57,9 @@ BEGIN TRY
     INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
     VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
     SET @idVisitanteSetup = SCOPE_IDENTITY();
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
 
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
     SET @idParqueSetup = SCOPE_IDENTITY();
 
     INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque)
@@ -115,8 +115,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -171,8 +171,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -204,8 +204,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -237,8 +237,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -288,8 +288,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -321,8 +321,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -354,8 +354,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -387,8 +387,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
@@ -430,8 +430,8 @@ BEGIN TRY
         INSERT INTO Turismo.Visitante (Telefono, CorreoVisitante, NumeroDocumento, TipoDocumento, CUIT, Edad, Nombre, Apellido)
         VALUES ('1100000001', 'visitante.ventas@gmail.com', '40111222', 'DNI', '20401112220', 30, 'Visitante', 'Ventas');
         SET @idVisitanteSetup = SCOPE_IDENTITY();
-        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
+        INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+        VALUES ('Parque Nacional Test Ventas', '18:00', '08:00', 500.00, 700.00, 'Salta', 1, 'Cafayate', 'Parque Nacional');
         SET @idParqueSetup = SCOPE_IDENTITY();
         INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque) VALUES (800.00, '2026-07-01', @idParqueSetup);
         SET @idEntradaSetup = SCOPE_IDENTITY();
