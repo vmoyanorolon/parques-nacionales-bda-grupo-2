@@ -26,18 +26,19 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
 ----------------------------------------
--- SP_AltaParque
+-- USP_AltaParque
 ----------------------------------------
 
 DECLARE @idParqueTest1 INT;
 
 -- Test 1: alta exitosa con datos válidos.
 -- Resultado esperado: se inserta el registro
-EXEC SP_AltaParque
+EXEC USP_AltaParque
     @Nombre = 'Parque Nacional Test Iguazu',
     @HorarioCierre = '18:00',
     @HorarioApertura = '08:00',
     @Superficie = 67620.00,
+    @CostoHectarea = 1500.00,
     @Provincia = 'Misiones',
     @Numero = 1,
     @Localidad = 'Puerto Iguazu',
@@ -51,11 +52,12 @@ SELECT Test = 1, * FROM Parques.Parque WHERE IdParque = @idParqueTest1;
 -- Resultado esperado: No se pudo dar de alta el parque porque ya existe otro con ese nombre.
 BEGIN TRY
     DECLARE @idParqueTest2 INT;
-    EXEC SP_AltaParque
+    EXEC USP_AltaParque
         @Nombre = 'Parque Nacional Test Iguazu', -- mismo nombre que Test 1
         @HorarioCierre = '19:00',
         @HorarioApertura = '07:00',
         @Superficie = 100.00,
+        @CostoHectarea = 1500.00,
         @Provincia = 'Misiones',
         @Numero = 2,
         @Localidad = 'Puerto Iguazu',
@@ -71,11 +73,12 @@ END CATCH
 -- Resultado esperado: error del motor por violar CK_Parque_Superficie
 BEGIN TRY
     DECLARE @idParqueTest3 INT;
-    EXEC SP_AltaParque
+    EXEC USP_AltaParque
         @Nombre = 'Parque Nacional Test Superficie Invalida',
         @HorarioCierre = '18:00',
         @HorarioApertura = '08:00',
         @Superficie = 0.00,
+        @CostoHectarea = 1500.00,
         @Provincia = 'Misiones',
         @Numero = 1,
         @Localidad = 'Puerto Iguazu',
@@ -91,11 +94,12 @@ END CATCH
 -- Resultado esperado: error del motor por violar CK_Parque_TipoParque.
 BEGIN TRY
     DECLARE @idParqueTest4 INT;
-    EXEC SP_AltaParque
+    EXEC USP_AltaParque
         @Nombre = 'Parque Nacional Test Tipo Invalido',
         @HorarioCierre = '18:00',
         @HorarioApertura = '08:00',
         @Superficie = 500.00,
+        @CostoHectarea = 1500.00,
         @Provincia = 'Misiones',
         @Numero = 1,
         @Localidad = 'Puerto Iguazu',
@@ -107,105 +111,128 @@ BEGIN CATCH
     PRINT 'Test 4 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
 END CATCH
 
+-- Test 5: alta con CostoHectarea <= 0.
+-- Resultado esperado: error del motor por violar CK_Parque_CostoHectarea
+BEGIN TRY
+    DECLARE @idParqueTest5 INT;
+    EXEC USP_AltaParque
+        @Nombre = 'Parque Nacional Test CostoHectarea Invalido',
+        @HorarioCierre = '18:00',
+        @HorarioApertura = '08:00',
+        @Superficie = 500.00,
+        @CostoHectarea = 0.00,
+        @Provincia = 'Misiones',
+        @Numero = 1,
+        @Localidad = 'Puerto Iguazu',
+        @TipoParque = 'Parque Nacional',
+        @IdParque = @idParqueTest5 OUTPUT;
+    PRINT 'Test 5 - FALLO: debería haber lanzado un error por CK_Parque_CostoHectarea.';
+END TRY
+BEGIN CATCH
+    PRINT 'Test 5 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+END CATCH
+
+
 ----------------------------------------
--- SP_ModificacionParque
+-- USP_ModificacionParque
 ----------------------------------------
 
--- Test 5: modificación parcial (se modifica HorarioCierre).
+-- Test 6: modificación parcial (se modifica HorarioCierre).
 -- Resultado esperado: HorarioCierre pasa a 20:00 y el resto de las columnas conserva los valores del Test 1
-EXEC SP_ModificacionParque
+EXEC USP_ModificacionParque
     @IdParque = @idParqueTest1,
     @HorarioCierre = '20:00';
 
-SELECT Test = 5, * FROM Parques.Parque WHERE IdParque = @idParqueTest1;
+SELECT Test = 6, * FROM Parques.Parque WHERE IdParque = @idParqueTest1;
 
--- Test 6: modificación de un IdParque inexistente.
+-- Test 7: modificación de un IdParque inexistente.
 -- Resultado esperado: no se puede modificar porque el parque indicado no existe
 BEGIN TRY
-    EXEC SP_ModificacionParque
+    EXEC USP_ModificacionParque
         @IdParque = -1,
         @Nombre = 'No debería aplicarse';
-    PRINT 'Test 6 - FALLO: debería haber lanzado un error por parque inexistente.';
-END TRY
-BEGIN CATCH
-    PRINT 'Test 6 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-END CATCH
-
--- Setup para Test 7/8: un segundo parque para probar el cruce de nombres en la modificación.
-DECLARE @idParqueTest7 INT;
-EXEC SP_AltaParque
-    @Nombre = 'Parque Nacional Test Secundario',
-    @HorarioCierre = '18:00',
-    @HorarioApertura = '08:00',
-    @Superficie = 200.00,
-    @Provincia = 'Chubut',
-    @Numero = 1,
-    @Localidad = 'Esquel',
-    @TipoParque = 'Reserva Nacional',
-    @IdParque = @idParqueTest7 OUTPUT;
-
--- Test 7: modificación que intenta renombrar el parque del Test 7 con el nombre que ya usa el parque del Test 1.
--- Resultado esperado: no se puede modificar el parque porque ya existe otro parque con ese nombre
-BEGIN TRY
-    EXEC SP_ModificacionParque
-        @IdParque = @idParqueTest7,
-        @Nombre = 'Parque Nacional Test Iguazu';
-    PRINT 'Test 7 - FALLO: debería haber lanzado un error por nombre duplicado.';
+    PRINT 'Test 7 - FALLO: debería haber lanzado un error por parque inexistente.';
 END TRY
 BEGIN CATCH
     PRINT 'Test 7 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
 END CATCH
 
--- Test 8: modificación que reenvía el mismo nombre que ya tiene el propio parque
+-- Setup para Test 8/9: un segundo parque para probar el cruce de nombres en la modificación.
+DECLARE @idParqueTest8 INT;
+EXEC USP_AltaParque
+    @Nombre = 'Parque Nacional Test Secundario',
+    @HorarioCierre = '18:00',
+    @HorarioApertura = '08:00',
+    @Superficie = 200.00,
+    @CostoHectarea = 1500.00,
+    @Provincia = 'Chubut',
+    @Numero = 1,
+    @Localidad = 'Esquel',
+    @TipoParque = 'Reserva Nacional',
+    @IdParque = @idParqueTest8 OUTPUT;
+
+-- Test 8: modificación que intenta renombrar el parque del Test 8 con el nombre que ya usa el parque del Test 1.
+-- Resultado esperado: no se puede modificar el parque porque ya existe otro parque con ese nombre
+BEGIN TRY
+    EXEC USP_ModificacionParque
+        @IdParque = @idParqueTest8,
+        @Nombre = 'Parque Nacional Test Iguazu';
+    PRINT 'Test 8 - FALLO: debería haber lanzado un error por nombre duplicado.';
+END TRY
+BEGIN CATCH
+    PRINT 'Test 8 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+END CATCH
+
+-- Test 9: modificación que reenvía el mismo nombre que ya tiene el propio parque
 -- Resultado esperado: NO lanza error, y Localidad se actualiza
-EXEC SP_ModificacionParque
-    @IdParque = @idParqueTest7,
+EXEC USP_ModificacionParque
+    @IdParque = @idParqueTest8,
     @Nombre = 'Parque Nacional Test Secundario',
     @Localidad = 'Trevelin';
 
-SELECT Test = 8, * FROM Parques.Parque WHERE IdParque = @idParqueTest7;
+SELECT Test = 9, * FROM Parques.Parque WHERE IdParque = @idParqueTest8;
 
 ----------------------------------------
--- SP_BajaParque
+-- USP_BajaParque
 ----------------------------------------
 
--- Test 9: baja de un IdParque inexistente.
+-- Test 10: baja de un IdParque inexistente.
 -- Resultado esperado: no se da ninguna baja porque el parque indicado no existe
 BEGIN TRY
-    EXEC SP_BajaParque @IdParque = -1;
-    PRINT 'Test 9 - FALLO: debería haber lanzado un error por parque inexistente.';
+    EXEC USP_BajaParque @IdParque = -1;
+    PRINT 'Test 10 - FALLO: debería haber lanzado un error por parque inexistente.';
 END TRY
 BEGIN CATCH
-    PRINT 'Test 9 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    PRINT 'Test 10 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
 END CATCH
 
 -- Test 10: baja de un parque sin registros relacionados.
 -- Resultado esperado: el parque se elimina sin error.
-EXEC SP_BajaParque @IdParque = @idParqueTest7;
+EXEC USP_BajaParque @IdParque = @idParqueTest8;
 
-SELECT * FROM Parques.Parque WHERE IdParque = @idParqueTest7;
+SELECT * FROM Parques.Parque WHERE IdParque = @idParqueTest8;
 
--- Setup para Test 11: una actividad asociada al parque del Test 1, para forzar la violación de FK que captura el CATCH de SP_BajaParque.
+-- Setup para Test 11: una actividad asociada al parque del Test 1, para forzar la violación de FK que captura el CATCH de USP_BajaParque.
 INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
 VALUES ('Sendero Test', 'Atracción', 0.00, 60, 20, @idParqueTest1);
 
--- Test 11: baja de un parque con registros relacionados (Actividad).
+-- Test 12: baja de un parque con registros relacionados (Actividad).
 -- Resultado esperado: no se puede eliminar el parque porque tiene registros relacionados
 BEGIN TRY
-    EXEC SP_BajaParque @IdParque = @idParqueTest1;
-    PRINT 'Test 11 - FALLO: debería haber lanzado un error por FK relacionada.';
+    EXEC USP_BajaParque @IdParque = @idParqueTest1;
+    PRINT 'Test 12 - FALLO: debería haber lanzado un error por FK relacionada.';
 END TRY
 BEGIN CATCH
-    PRINT 'Test 11 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+    PRINT 'Test 12 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
 END CATCH
 
 ----------------------------------------
 -- Cierre
 ----------------------------------------
--- Se descartan todos los datos de prueba (parques y la actividad del Test 11)
+-- Se descartan todos los datos de prueba (parques y la actividad del Test 12)
 -- para que el script sea re-ejecutable sin residuos.
     ROLLBACK TRANSACTION;
-    PRINT 'Suite de SP_AltaParque / SP_ModificacionParque / SP_BajaParque finalizada sin errores inesperados.';
+    PRINT 'Suite de USP_AltaParque / USP_ModificacionParque / USP_BajaParque finalizada sin errores inesperados.';
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0

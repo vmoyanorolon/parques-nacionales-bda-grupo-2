@@ -2,7 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
--- Descripción: Scripts testing para los Stored Procedures del esquema Personal
+-- Descripción: Scripts testing para los Stored Procedures del esquema Concesiones
 
 USE ParquesNacionales
 GO
@@ -17,637 +17,368 @@ BEGIN
         ROLLBACK TRANSACTION;
 END
 
+DECLARE @idParqueSetup INT;
+DECLARE @idOrgTest1 INT, @idOrgTest6 INT;
+DECLARE @idConcesionSetup INT, @idConcesionTest10 INT;
+DECLARE @idPagoTest22 INT, @idPagoTest23 INT;
+
+-- Limpieza previa
 BEGIN TRY
-    BEGIN TRANSACTION;
+    DELETE pc
+    FROM Concesiones.PagoConcesion pc
+    JOIN Concesiones.Concesion c ON c.IdConcesion = pc.IdConcesion
+    JOIN Parques.Parque p ON p.IdParque = c.IdParque
+    WHERE p.Nombre = 'Parque Nacional Test Concesiones';
 
-    -- Setup compartido: parque y actividad necesarios para los tests de
-    -- Habilitacion y GuiaTrabajaEnParque. Se insertan directamente para no
-    -- depender de SPs de otros módulos dentro de este script.
-    DECLARE @idParqueSetup INT, @idActividadSetup INT;
+    DELETE c
+    FROM Concesiones.Concesion c
+    JOIN Parques.Parque p ON p.IdParque = c.IdParque
+    WHERE p.Nombre = 'Parque Nacional Test Concesiones';
 
-    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, Provincia, Numero, Localidad, TipoParque)
-    VALUES ('Parque Nacional Test Personal', '18:00', '08:00', 1000.00, 'Neuquén', 1, 'San Martín de los Andes', 'Parque Nacional');
+    DELETE FROM Concesiones.OrganizacionConcesionaria
+    WHERE Cuit IN ('30711222339', '30711222340', '30711222341');
+
+    DELETE FROM Parques.Parque
+    WHERE Nombre = 'Parque Nacional Test Concesiones';
+
+    PRINT 'Limpieza previa OK (se eliminaron residuos de una corrida anterior, si los había).';
+END TRY
+BEGIN CATCH
+    PRINT 'ERROR EN LIMPIEZA PREVIA - revisar datos manualmente antes de reintentar. Detalle: ' + ERROR_MESSAGE();
+END CATCH
+
+BEGIN TRY
+
+    -- Setup compartido: parque necesario para las concesiones (Superficie = 1000.00,
+    -- por lo que el límite legal del 10% -Art. 12, Ley 22.351- es 100.00).
+    -- Se inserta directamente para no depender de SPs de otros módulos dentro de este script.
+    INSERT INTO Parques.Parque (Nombre, HorarioCierre, HorarioApertura, Superficie, CostoHectarea, Provincia, Numero, Localidad, TipoParque)
+    VALUES ('Parque Nacional Test Concesiones', '18:00', '08:00', 1000.00, 1000.00, 'Chubut', 1, 'Esquel', 'Parque Nacional');
+
     SET @idParqueSetup = SCOPE_IDENTITY();
 
-    INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
-    VALUES ('Tour Test Personal', 'Tour', 200.00, 120, 10, @idParqueSetup);
-    SET @idActividadSetup = SCOPE_IDENTITY();
-
     ----------------------------------------
-    -- SP_AltaGuia
+    -- USP_AltaOrganizacionConcesionaria
     ----------------------------------------
-
-    DECLARE @idGuiaTest1 INT;
 
     -- Test 1: alta exitosa.
-    -- Resultado esperado: inserta el guía correctamente.
-    EXEC SP_AltaGuia
-        @Telefono        = '1122334455',
-        @CorreoGuia      = 'guia.test1@gmail.com',
-        @NumeroDocumento = '28111222',
-        @TipoDocumento   = 'DNI',
-        @Edad            = 35,
-        @Apellido        = 'Lopez',
-        @Nombre          = 'Carlos',
-        @Titulo          = 'Guía de Naturaleza',
-        @Especialidad    = 'Flora';
-    SET @idGuiaTest1 = IDENT_CURRENT('Personal.Guia');
+    -- Resultado esperado: inserta la organización concesionaria correctamente.
+    EXEC USP_AltaOrganizacionConcesionaria
+        @Nombre               = 'Concesionaria Patagonia SA',
+        @TipoActividad        = 'Gastronomía',
+        @Cuit                 = '30711222339',
+        @CorreoContacto       = 'contacto@patagonia-sa.com',
+        @TelefonoContacto     = '2945400000',
+        @DomicilioRegistrado  = 'Av. San Martín 100, Esquel';
+    SET @idOrgTest1 = IDENT_CURRENT('Concesiones.OrganizacionConcesionaria');
 
-    SELECT Test = 1, * FROM Personal.Guia WHERE IdGuia = @idGuiaTest1;
+    SELECT Test = 1, * FROM Concesiones.OrganizacionConcesionaria WHERE IdOrganizacionConcesionaria = @idOrgTest1;
 
-    -- Test 2: alta con NumeroDocumento duplicado.
-    -- Resultado esperado: error 50000 "El guía con documento 28111222 ya existe."
+    -- Test 2: alta con Cuit duplicado.
+    -- Resultado esperado: error 50000 "El CUIT ingresado ya existe."
     BEGIN TRY
-        EXEC SP_AltaGuia
-            @Telefono        = '1100000001',
-            @CorreoGuia      = 'guia.test2@gmail.com',
-            @NumeroDocumento = '28111222', -- mismo documento que Test 1
-            @TipoDocumento   = 'DNI',
-            @Edad            = 28,
-            @Apellido        = 'Otro',
-            @Nombre          = 'Guia',
-            @Titulo          = 'Guía',
-            @Especialidad    = 'Fauna';
-        PRINT 'Test 2 - FALLO: debería haber lanzado un error por documento duplicado.';
+        EXEC USP_AltaOrganizacionConcesionaria
+            @Nombre        = 'Otra Concesionaria SRL',
+            @TipoActividad = 'Hotelería',
+            @Cuit          = '30711222339'; -- mismo CUIT que Test 1
+        PRINT 'Test 2 - FALLO: debería haber lanzado un error por CUIT duplicado.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 2 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Test 3: alta con CorreoGuia duplicado.
-    -- Resultado esperado: error 50000 "El correo guia.test1@gmail.com ya existe."
+    -- Test 3: alta con CorreoContacto de formato inválido.
+    -- Resultado esperado: error del motor por violar CK_OrganizacionConcesionaria_CorreoContacto.
     BEGIN TRY
-        EXEC SP_AltaGuia
-            @Telefono        = '1100000002',
-            @CorreoGuia      = 'guia.test1@gmail.com', -- mismo correo que Test 1
-            @NumeroDocumento = '28111223',
-            @TipoDocumento   = 'DNI',
-            @Edad            = 28,
-            @Apellido        = 'Otro',
-            @Nombre          = 'Guia',
-            @Titulo          = 'Guía',
-            @Especialidad    = 'Fauna';
-        PRINT 'Test 3 - FALLO: debería haber lanzado un error por correo duplicado.';
+        EXEC USP_AltaOrganizacionConcesionaria
+            @Nombre         = 'Concesionaria Correo Invalido',
+            @TipoActividad  = 'Transporte',
+            @Cuit           = '30711222340',
+            @CorreoContacto = 'correo-sin-arroba.com';
+        PRINT 'Test 3 - FALLO: debería haber lanzado un error por CK_OrganizacionConcesionaria_CorreoContacto.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 3 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Test 4: alta con Edad fuera de rango.
-    -- Resultado esperado: error del motor por violar CK_Guia_Edad (0-99).
-    BEGIN TRY
-        EXEC SP_AltaGuia
-            @Telefono        = '1100000003',
-            @CorreoGuia      = 'guia.test4@gmail.com',
-            @NumeroDocumento = '28111224',
-            @TipoDocumento   = 'DNI',
-            @Edad            = 150,
-            @Apellido        = 'Edad',
-            @Nombre          = 'Invalida',
-            @Titulo          = 'Guía',
-            @Especialidad    = 'Fauna';
-        PRINT 'Test 4 - FALLO: debería haber lanzado un error por CK_Guia_Edad.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 4 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
+    ----------------------------------------
+    -- USP_ModificacionOrganizacionConcesionaria
+    ----------------------------------------
 
-    -- Test 5: alta con TipoDocumento fuera del dominio permitido.
-    -- Resultado esperado: error del motor por violar CK_Guia_TipoDocumento.
+    -- Test 4: modificación parcial (solo Nombre).
+    -- Resultado esperado: Nombre cambia, el resto conserva los valores del Test 1.
+    EXEC USP_ModificacionOrganizacionConcesionaria @IdOrganizacionConcesionaria = @idOrgTest1, @Nombre = 'Concesionaria Patagonia SA (renombrada)';
+
+    SELECT Test = 4, * FROM Concesiones.OrganizacionConcesionaria WHERE IdOrganizacionConcesionaria = @idOrgTest1;
+
+    -- Test 5: modificación de un IdOrganizacionConcesionaria inexistente.
+    -- Resultado esperado: error 50000 "La organización concesionaria indicada no existe."
     BEGIN TRY
-        EXEC SP_AltaGuia
-            @Telefono        = '1100000004',
-            @CorreoGuia      = 'guia.test5@gmail.com',
-            @NumeroDocumento = '28111225',
-            @TipoDocumento   = 'XX',
-            @Edad            = 30,
-            @Apellido        = 'Tipo',
-            @Nombre          = 'Invalido',
-            @Titulo          = 'Guía',
-            @Especialidad    = 'Fauna';
-        PRINT 'Test 5 - FALLO: debería haber lanzado un error por CK_Guia_TipoDocumento.';
+        EXEC USP_ModificacionOrganizacionConcesionaria @IdOrganizacionConcesionaria = -1, @Nombre = 'No Existe';
+        PRINT 'Test 5 - FALLO: debería haber lanzado un error por organización inexistente.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 5 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
+    -- Setup para Test 6: una segunda organización concesionaria para probar el cruce de CUIT.
+    EXEC USP_AltaOrganizacionConcesionaria
+        @Nombre        = 'Concesionaria Segunda SA',
+        @TipoActividad = 'Excursiones',
+        @Cuit          = '30711222341';
+    SET @idOrgTest6 = IDENT_CURRENT('Concesiones.OrganizacionConcesionaria');
+
+    -- Test 6: modificación que intenta usar el Cuit de otra organización.
+    -- Resultado esperado: SP emite un PRINT, sin fallar, pero el
+    -- Cuit de @idOrgTest6 NO debe cambiar (sigue siendo '30711222341').
+    EXEC USP_ModificacionOrganizacionConcesionaria @IdOrganizacionConcesionaria = @idOrgTest6, @Cuit = '30711222339'; -- CUIT de @idOrgTest1
+
+    SELECT Test = 6, * FROM Concesiones.OrganizacionConcesionaria WHERE IdOrganizacionConcesionaria = @idOrgTest6;
+
     ----------------------------------------
-    -- SP_ModificacionGuia
+    -- USP_BajaOrganizacionConcesionaria
     ----------------------------------------
 
-    -- Test 6: modificación parcial (solo Telefono).
-    -- Resultado esperado: Telefono cambia, el resto conserva los valores del Test 1.
-    EXEC SP_ModificacionGuia @IdGuia = @idGuiaTest1, @Telefono = '5500001111';
-
-    SELECT Test = 6, * FROM Personal.Guia WHERE IdGuia = @idGuiaTest1;
-
-    -- Test 7: modificación de un IdGuia inexistente.
-    -- Resultado esperado: error 50000 "El guía con id -1 no existe."
+    -- Test 7: baja de un IdOrganizacionConcesionaria inexistente.
+    -- Resultado esperado: error 50000 "La organización concesionaria indicada no existe."
     BEGIN TRY
-        EXEC SP_ModificacionGuia @IdGuia = -1, @Telefono = '0000000000';
-        PRINT 'Test 7 - FALLO: debería haber lanzado un error por guía inexistente.';
+        EXEC USP_BajaOrganizacionConcesionaria @IdOrganizacionConcesionaria = -1;
+        PRINT 'Test 7 - FALLO: debería haber lanzado un error por organización inexistente.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 7 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Setup para Test 8: un segundo guía para probar el cruce de documentos.
-    DECLARE @idGuiaTest8 INT;
-    EXEC SP_AltaGuia
-        @Telefono        = '1100000005',
-        @CorreoGuia      = 'guia.test8@gmail.com',
-        @NumeroDocumento = '28111226',
-        @TipoDocumento   = 'DNI',
-        @Edad            = 40,
-        @Apellido        = 'Segundo',
-        @Nombre          = 'Guia',
-        @Titulo          = 'Guía de Naturaleza',
-        @Especialidad    = 'Fauna';
-    SET @idGuiaTest8 = IDENT_CURRENT('Personal.Guia');
+    -- Setup para Test 8: una concesión asociada a @idOrgTest1 para forzar la FK al intentar darla de baja.
+    INSERT INTO Concesiones.Concesion (IdParque, IdOrganizacionConcesionaria, CanonMensual, ExtensionConcedida, EstadoConcesion, FechaInicio)
+    VALUES (@idParqueSetup, @idOrgTest1, 500.00, 20.00, 'Activo', '2026-01-01');
+    SET @idConcesionSetup = SCOPE_IDENTITY();
 
-    -- Test 8: modificación que intenta usar el NumeroDocumento de otro guía.
-    -- Resultado esperado: error 50000 "El guía con documento 28111222 ya existe."
+    -- Test 8: baja de una organización con concesiones asociadas.
+    -- Resultado esperado: error 50000 "La organización concesionaria cuenta con concesiones asociadas."
     BEGIN TRY
-        EXEC SP_ModificacionGuia @IdGuia = @idGuiaTest8, @NumeroDocumento = '28111222';
-        PRINT 'Test 8 - FALLO: debería haber lanzado un error por documento duplicado.';
+        EXEC USP_BajaOrganizacionConcesionaria @IdOrganizacionConcesionaria = @idOrgTest1;
+        PRINT 'Test 8 - FALLO: debería haber lanzado un error por concesiones asociadas.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 8 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
+    -- Test 9: baja exitosa de una organización sin concesiones asociadas.
+    -- Resultado esperado: se elimina @idOrgTest6 sin error.
+    EXEC USP_BajaOrganizacionConcesionaria @IdOrganizacionConcesionaria = @idOrgTest6;
+
     ----------------------------------------
-    -- SP_BajaGuia
+    -- USP_AltaConcesion
     ----------------------------------------
 
-    -- Test 9: baja de un IdGuia inexistente.
-    -- Resultado esperado: error 50000 "El guía con id -1 no existe."
+    -- El parque de Setup tiene Superficie = 1000.00, por lo que el límite legal
+    -- (10%, Art. 12 Ley 22.351) es 100.00. La concesión de Setup ya ocupa 20.00.
+
+    -- Test 10: alta exitosa (20.00 de Setup + 30.00 nuevos = 50.00, dentro del límite).
+    -- Resultado esperado: inserta la concesión con EstadoConcesion = 'Activo'.
+    EXEC USP_AltaConcesion
+        @IdParque                    = @idParqueSetup,
+        @IdOrganizacionConcesionaria = @idOrgTest1,
+        @CanonMensual                = 800.00,
+        @ExtensionConcedida          = 30.00,
+        @FechaInicio                 = '2026-02-01';
+    SET @idConcesionTest10 = IDENT_CURRENT('Concesiones.Concesion');
+
+    SELECT Test = 10, * FROM Concesiones.Concesion WHERE IdConcesion = @idConcesionTest10;
+
+    -- Test 11: alta con IdParque inexistente.
+    -- Resultado esperado: error 50000 "El parque ingresado no existe."
     BEGIN TRY
-        EXEC SP_BajaGuia @IdGuia = -1;
-        PRINT 'Test 9 - FALLO: debería haber lanzado un error por guía inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 9 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 10: baja exitosa de un guía sin relaciones.
-    -- Resultado esperado: se elimina sin error.
-    EXEC SP_BajaGuia @IdGuia = @idGuiaTest8;
-
-    -- Setup para Test 11: registrar al guía del Test 1 en el parque de setup,
-    -- para forzar la FK al intentar darlo de baja.
-    INSERT INTO Personal.GuiaTrabajaEnParque (IdGuia, IdParque)
-    VALUES (@idGuiaTest1, @idParqueSetup);
-
-    -- Test 11: baja de un guía con registros relacionados (GuiaTrabajaEnParque).
-    -- Resultado esperado: error 50000 "No se puede eliminar el Guia: Tiene registros de Habilitaciones asociadas y Parques donde trabaja asociados"
-    BEGIN TRY
-        EXEC SP_BajaGuia @IdGuia = @idGuiaTest1;
-        PRINT 'Test 11 - FALLO: debería haber lanzado un error por registros relacionados.';
+        EXEC USP_AltaConcesion
+            @IdParque                    = -1,
+            @IdOrganizacionConcesionaria = @idOrgTest1,
+            @CanonMensual                = 500.00,
+            @ExtensionConcedida          = 10.00;
+        PRINT 'Test 11 - FALLO: debería haber lanzado un error por parque inexistente.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 11 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    ----------------------------------------
-    -- SP_AltaGuiaTrabajaEnParque
-    ----------------------------------------
-
-    -- Setup para Test 12: un tercer guía para los tests de GuiaTrabajaEnParque.
-    DECLARE @idGuiaTest12 INT;
-    EXEC SP_AltaGuia
-        @Telefono        = '1100000006',
-        @CorreoGuia      = 'guia.test12@gmail.com',
-        @NumeroDocumento = '28111227',
-        @TipoDocumento   = 'DNI',
-        @Edad            = 45,
-        @Apellido        = 'Tercer',
-        @Nombre          = 'Guia',
-        @Titulo          = 'Guía de Naturaleza',
-        @Especialidad    = 'Geología';
-    SET @idGuiaTest12 = IDENT_CURRENT('Personal.Guia');
-
-    -- Test 12: alta exitosa.
-    -- Resultado esperado: se registra la relación guía-parque correctamente.
-    EXEC SP_AltaGuiaTrabajaEnParque @IdGuia = @idGuiaTest12, @IdParque = @idParqueSetup;
-
-    SELECT Test = 12, * FROM Personal.GuiaTrabajaEnParque WHERE IdGuia = @idGuiaTest12;
-
-    -- Test 13: alta con IdGuia inexistente.
-    -- Resultado esperado: error 50000 "El guía con id -1 no existe."
+    -- Test 12: alta con IdOrganizacionConcesionaria inexistente.
+    -- Resultado esperado: error 50000 "La organización concesionaria ingresada no existe."
     BEGIN TRY
-        EXEC SP_AltaGuiaTrabajaEnParque @IdGuia = -1, @IdParque = @idParqueSetup;
-        PRINT 'Test 13 - FALLO: debería haber lanzado un error por guía inexistente.';
+        EXEC USP_AltaConcesion
+            @IdParque                    = @idParqueSetup,
+            @IdOrganizacionConcesionaria = -1,
+            @CanonMensual                = 500.00,
+            @ExtensionConcedida          = 10.00;
+        PRINT 'Test 12 - FALLO: debería haber lanzado un error por organización inexistente.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 12 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
+    END CATCH
+
+    -- Test 13: alta que supera el límite legal de superficie concedida.
+    -- Total activo actual = 20.00 (Setup) + 30.00 (Test 10) = 50.00. Se pide 60.00 más
+    -- (total 110.00), lo que supera el límite de 100.00.
+    -- Resultado esperado: error 50000 "La extensión que se desea conceder supera el límite
+    -- establecido por ley (Art. 12, Ley 22.351)."
+    BEGIN TRY
+        EXEC USP_AltaConcesion
+            @IdParque                    = @idParqueSetup,
+            @IdOrganizacionConcesionaria = @idOrgTest1,
+            @CanonMensual                = 500.00,
+            @ExtensionConcedida          = 60.00;
+        PRINT 'Test 13 - FALLO: debería haber lanzado un error por exceder el límite legal.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 13 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Test 14: alta con IdParque inexistente.
-    -- Resultado esperado: error 50000 "El parque con id -1 no existe."
-    BEGIN TRY
-        EXEC SP_AltaGuiaTrabajaEnParque @IdGuia = @idGuiaTest12, @IdParque = -1;
-        PRINT 'Test 14 - FALLO: debería haber lanzado un error por parque inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 14 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
+    ----------------------------------------
+    -- USP_ModificacionConcesion
+    ----------------------------------------
 
-    -- Test 15: alta de una combinación guía-parque duplicada.
-    -- Resultado esperado: error 50000 "El guía con id X ya trabaja en el parque con id Y."
+    -- Test 14: modificación parcial exitosa (solo CanonMensual).
+    -- Resultado esperado: CanonMensual cambia, ExtensionConcedida conserva el valor del Test 10.
+    EXEC USP_ModificacionConcesion @IdConcesion = @idConcesionTest10, @CanonMensual = 950.00;
+
+    SELECT Test = 14, * FROM Concesiones.Concesion WHERE IdConcesion = @idConcesionTest10;
+
+    -- Test 15: modificación de un IdConcesion inexistente.
+    -- Resultado esperado: error 50000 "La concesión indicada no existe."
     BEGIN TRY
-        EXEC SP_AltaGuiaTrabajaEnParque @IdGuia = @idGuiaTest12, @IdParque = @idParqueSetup;
-        PRINT 'Test 15 - FALLO: debería haber lanzado un error por combinación duplicada.';
+        EXEC USP_ModificacionConcesion @IdConcesion = -1, @CanonMensual = 100.00;
+        PRINT 'Test 15 - FALLO: debería haber lanzado un error por concesión inexistente.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 15 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    ----------------------------------------
-    -- SP_BajaGuiaTrabajaEnParque
-    ----------------------------------------
-
-    -- Test 16: baja de un par guía-parque que no existe.
-    -- Resultado esperado: error 50000 "No existe un guía con id -1 que trabaje en el parque con id -1."
+    -- Test 16: modificación de ExtensionConcedida que supera el límite legal.
+    -- Total activo excluyendo la propia concesión = 20.00 (Setup). Se pide llevar
+    -- Test 10 a 90.00 (total 110.00), lo que supera el límite de 100.00.
+    -- Resultado esperado: error 50000 por exceder el límite legal.
     BEGIN TRY
-        EXEC SP_BajaGuiaTrabajaEnParque @IdGuia = -1, @IdParque = -1;
-        PRINT 'Test 16 - FALLO: debería haber lanzado un error por par inexistente.';
+        EXEC USP_ModificacionConcesion @IdConcesion = @idConcesionTest10, @ExtensionConcedida = 90.00;
+        PRINT 'Test 16 - FALLO: debería haber lanzado un error por exceder el límite legal.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 16 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Test 17: baja exitosa.
-    -- Resultado esperado: se elimina la relación sin error.
-    EXEC SP_BajaGuiaTrabajaEnParque @IdGuia = @idGuiaTest12, @IdParque = @idParqueSetup;
-
     ----------------------------------------
-    -- SP_AltaHabilitacion
+    -- USP_BajaConcesion
     ----------------------------------------
 
-    -- Test 18: alta exitosa. Como el guía del Test 12 ya NO trabaja en el
-    -- parque (lo dimos de baja en Test 17), SP_AltaHabilitacion también debe
-    -- insertar automáticamente en GuiaTrabajaEnParque.
-    -- Resultado esperado: se inserta la habilitación y el registro en GuiaTrabajaEnParque.
-    DECLARE @idHabilitacionTest18 INT;
-    EXEC SP_AltaHabilitacion
-        @IdGuia       = @idGuiaTest12,
-        @IdActividad  = @idActividadSetup,
-        @DiasVigentes = 365;
-    SET @idHabilitacionTest18 = IDENT_CURRENT('Personal.Habilitacion');
-
-    SELECT Test = 18, * FROM Personal.Habilitacion WHERE IdHabilitacion = @idHabilitacionTest18;
-    SELECT Test = 18, 'GuiaTrabajaEnParque', * FROM Personal.GuiaTrabajaEnParque WHERE IdGuia = @idGuiaTest12;
-
-    -- Test 19: alta con IdActividad inexistente.
-    -- Resultado esperado: error 50000 "La actividad indicada no existe."
+    -- Test 17: baja de un IdConcesion inexistente.
+    -- Resultado esperado: error 50000 "La concesión indicada no existe."
     BEGIN TRY
-        EXEC SP_AltaHabilitacion @IdGuia = @idGuiaTest12, @IdActividad = -1, @DiasVigentes = 100;
-        PRINT 'Test 19 - FALLO: debería haber lanzado un error por actividad inexistente.';
+        EXEC USP_BajaConcesion @IdConcesion = -1;
+        PRINT 'Test 17 - FALLO: debería haber lanzado un error por concesión inexistente.';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Test 17 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
+    END CATCH
+
+    -- Test 18: baja exitosa de la concesión del Test 10.
+    -- Resultado esperado: EstadoConcesion pasa a 'Inactivo'.
+    EXEC USP_BajaConcesion @IdConcesion = @idConcesionTest10;
+
+    SELECT Test = 18, * FROM Concesiones.Concesion WHERE IdConcesion = @idConcesionTest10;
+
+    -- Test 19: baja de una concesión que ya está inactiva.
+    -- Resultado esperado: error 50000 "La concesión indicada ya está inactiva."
+    BEGIN TRY
+        EXEC USP_BajaConcesion @IdConcesion = @idConcesionTest10;
+        PRINT 'Test 19 - FALLO: debería haber lanzado un error por concesión ya inactiva.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 19 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Test 20: alta con IdGuia inexistente.
-    -- Resultado esperado: error 50000 "El guía indicado no existe."
+    ----------------------------------------
+    -- USP_AltaPagoConcesion
+    ----------------------------------------
+
+    -- Test 20: alta de pago para un IdConcesion inexistente.
+    -- Resultado esperado: error 50000 "La concesión indicada no existe."
     BEGIN TRY
-        EXEC SP_AltaHabilitacion @IdGuia = -1, @IdActividad = @idActividadSetup, @DiasVigentes = 100;
-        PRINT 'Test 20 - FALLO: debería haber lanzado un error por guía inexistente.';
+        EXEC USP_AltaPagoConcesion @IdConcesion = -1;
+        PRINT 'Test 20 - FALLO: debería haber lanzado un error por concesión inexistente.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 20 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    -- Test 21: alta con DiasVigentes <= 0.
-    -- Resultado esperado: error 50000 "Los días vigentes deben ser mayores a 0."
+    -- Test 21: alta de pago para una concesión inactiva (la del Test 10/18).
+    -- Resultado esperado: error 50000 "La concesión indicada está inactiva."
     BEGIN TRY
-        EXEC SP_AltaHabilitacion @IdGuia = @idGuiaTest12, @IdActividad = @idActividadSetup, @DiasVigentes = 0;
-        PRINT 'Test 21 - FALLO: debería haber lanzado un error por DiasVigentes inválido.';
+        EXEC USP_AltaPagoConcesion @IdConcesion = @idConcesionTest10;
+        PRINT 'Test 21 - FALLO: debería haber lanzado un error por concesión inactiva.';
     END TRY
     BEGIN CATCH
         PRINT 'Test 21 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
+        IF XACT_STATE() <> 0
+            ROLLBACK TRANSACTION;
     END CATCH
 
-    ----------------------------------------
-    -- SP_ModificacionHabilitacion
-    ----------------------------------------
+    -- Test 22: alta exitosa de pago sobre la concesión de Setup (activa, CanonMensual = 500.00).
+    -- Resultado esperado: inserta el pago con Monto = 500.00 y Fecha = GETDATE().
+    EXEC USP_AltaPagoConcesion @IdConcesion = @idConcesionSetup;
+    SET @idPagoTest22 = IDENT_CURRENT('Concesiones.PagoConcesion');
 
-    -- Test 22: modificación exitosa.
-    -- Resultado esperado: DiasVigentes cambia a 180.
-    EXEC SP_ModificacionHabilitacion @IdHabilitacion = @idHabilitacionTest18, @DiasVigentes = 180;
+    SELECT Test = 22, * FROM Concesiones.PagoConcesion WHERE IdPagoConcesion = @idPagoTest22;
 
-    SELECT Test = 22, * FROM Personal.Habilitacion WHERE IdHabilitacion = @idHabilitacionTest18;
+    -- Test 23: alta exitosa de pago con Fecha explícita.
+    -- Resultado esperado: inserta el pago respetando la Fecha indicada en lugar de GETDATE().
+    EXEC USP_AltaPagoConcesion @IdConcesion = @idConcesionSetup, @Fecha = '20260315';
+    SET @idPagoTest23 = IDENT_CURRENT('Concesiones.PagoConcesion');
 
-    -- Test 23: modificación de una IdHabilitacion inexistente.
-    -- Resultado esperado: error 50000 "La habilitación indicada no existe."
-    BEGIN TRY
-        EXEC SP_ModificacionHabilitacion @IdHabilitacion = -1, @DiasVigentes = 100;
-        PRINT 'Test 23 - FALLO: debería haber lanzado un error por habilitación inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 23 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
+    SELECT Test = 23, * FROM Concesiones.PagoConcesion WHERE IdPagoConcesion = @idPagoTest23;
 
-    -- Test 24: modificación con DiasVigentes <= 0.
-    -- Resultado esperado: error 50000 "Los días vigentes deben ser mayores a 0."
-    BEGIN TRY
-        EXEC SP_ModificacionHabilitacion @IdHabilitacion = @idHabilitacionTest18, @DiasVigentes = -1;
-        PRINT 'Test 24 - FALLO: debería haber lanzado un error por DiasVigentes inválido.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 24 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    ----------------------------------------
-    -- SP_BajaHabilitacion
-    ----------------------------------------
-
-    -- Test 25: baja de una IdHabilitacion inexistente.
-    -- Resultado esperado: error 50000 "La habilitación indicada no existe."
-    BEGIN TRY
-        EXEC SP_BajaHabilitacion @IdHabilitacion = -1;
-        PRINT 'Test 25 - FALLO: debería haber lanzado un error por habilitación inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 25 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 26: baja exitosa.
-    -- Resultado esperado: se elimina la habilitación sin error.
-    EXEC SP_BajaHabilitacion @IdHabilitacion = @idHabilitacionTest18;
-
-    ----------------------------------------
-    -- SP_AltaGuardaparque
-    ----------------------------------------
-
-    DECLARE @idGuardaparqueTest27 INT;
-
-    -- Test 27: alta exitosa.
-    -- Resultado esperado: inserta el guardaparque correctamente.
-    EXEC SP_AltaGuardaparque
-        @Telefono             = '1133445566',
-        @CorreoGuardaparque   = 'guardaparque.test27@gmail.com',
-        @NumeroDocumento      = '32111222',
-        @TipoDocumento        = 'DNI',
-        @Edad                 = 40,
-        @Apellido             = 'Garcia',
-        @Nombre               = 'Maria',
-        @Estado               = 'Activo';
-    SET @idGuardaparqueTest27 = IDENT_CURRENT('Personal.Guardaparque');
-
-    SELECT Test = 27, * FROM Personal.Guardaparque WHERE IdGuardaparque = @idGuardaparqueTest27;
-
-    -- Test 28: alta con NumeroDocumento duplicado.
-    -- Resultado esperado: error 50000 "El guardaparque con documento 32111222 ya existe."
-    BEGIN TRY
-        EXEC SP_AltaGuardaparque
-            @Telefono             = '1100000007',
-            @CorreoGuardaparque   = 'guardaparque.test28@gmail.com',
-            @NumeroDocumento      = '32111222', -- mismo documento que Test 27
-            @TipoDocumento        = 'DNI',
-            @Edad                 = 30,
-            @Apellido             = 'Otro',
-            @Nombre               = 'Guardaparque',
-            @Estado               = 'Activo';
-        PRINT 'Test 28 - FALLO: debería haber lanzado un error por documento duplicado.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 28 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 29: alta con CorreoGuardaparque duplicado.
-    -- Resultado esperado: error 50000 "El guardaparque con correo guardaparque.test27@gmail.com ya existe."
-    BEGIN TRY
-        EXEC SP_AltaGuardaparque
-            @Telefono             = '1100000008',
-            @CorreoGuardaparque   = 'guardaparque.test27@gmail.com', -- mismo correo que Test 27
-            @NumeroDocumento      = '32111223',
-            @TipoDocumento        = 'DNI',
-            @Edad                 = 30,
-            @Apellido             = 'Otro',
-            @Nombre               = 'Guardaparque',
-            @Estado               = 'Activo';
-        PRINT 'Test 29 - FALLO: debería haber lanzado un error por correo duplicado.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 29 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 30: alta con Estado fuera del dominio permitido.
-    -- Resultado esperado: error del motor por violar CK_Guardaparque_Estado.
-    BEGIN TRY
-        EXEC SP_AltaGuardaparque
-            @Telefono             = '1100000009',
-            @CorreoGuardaparque   = 'guardaparque.test30@gmail.com',
-            @NumeroDocumento      = '32111224',
-            @TipoDocumento        = 'DNI',
-            @Edad                 = 30,
-            @Apellido             = 'Estado',
-            @Nombre               = 'Invalido',
-            @Estado               = 'Suspendido';
-        PRINT 'Test 30 - FALLO: debería haber lanzado un error por CK_Guardaparque_Estado.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 30 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 31: alta con Edad fuera de rango.
-    -- Resultado esperado: error del motor por violar CK_Guardaparque_Edad (0-99).
-    BEGIN TRY
-        EXEC SP_AltaGuardaparque
-            @Telefono             = '1100000010',
-            @CorreoGuardaparque   = 'guardaparque.test31@gmail.com',
-            @NumeroDocumento      = '32111225',
-            @TipoDocumento        = 'DNI',
-            @Edad                 = 150,
-            @Apellido             = 'Edad',
-            @Nombre               = 'Invalida',
-            @Estado               = 'Activo';
-        PRINT 'Test 31 - FALLO: debería haber lanzado un error por CK_Guardaparque_Edad.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 31 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    ----------------------------------------
-    -- SP_ModificacionGuardaparque
-    ----------------------------------------
-
-    -- Test 32: modificación parcial (solo Telefono).
-    -- Resultado esperado: Telefono cambia, el resto conserva los valores del Test 27.
-    EXEC SP_ModificacionGuardaparque @IdGuardaparque = @idGuardaparqueTest27, @Telefono = '5500002222';
-
-    SELECT Test = 32, * FROM Personal.Guardaparque WHERE IdGuardaparque = @idGuardaparqueTest27;
-
-    -- Test 33: modificación de un IdGuardaparque inexistente.
-    -- Resultado esperado: error 50000 "El guardaparque con id -1 no existe."
-    BEGIN TRY
-        EXEC SP_ModificacionGuardaparque @IdGuardaparque = -1, @Telefono = '0000000000';
-        PRINT 'Test 33 - FALLO: debería haber lanzado un error por guardaparque inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 33 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Setup para Test 34: un segundo guardaparque para probar el cruce de documentos.
-    DECLARE @idGuardaparqueTest34 INT;
-    EXEC SP_AltaGuardaparque
-        @Telefono             = '1100000011',
-        @CorreoGuardaparque   = 'guardaparque.test34@gmail.com',
-        @NumeroDocumento      = '32111226',
-        @TipoDocumento        = 'DNI',
-        @Edad                 = 38,
-        @Apellido             = 'Segundo',
-        @Nombre               = 'Guardaparque',
-        @Estado               = 'Activo';
-    SET @idGuardaparqueTest34 = IDENT_CURRENT('Personal.Guardaparque');
-
-    -- Test 34: modificación que intenta usar el NumeroDocumento de otro guardaparque.
-    -- Resultado esperado: error 50000 "El guardaparque con documento 32111222 ya existe."
-    BEGIN TRY
-        EXEC SP_ModificacionGuardaparque @IdGuardaparque = @idGuardaparqueTest34, @NumeroDocumento = '32111222';
-        PRINT 'Test 34 - FALLO: debería haber lanzado un error por documento duplicado.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 34 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    ----------------------------------------
-    -- SP_BajaGuardaparque
-    ----------------------------------------
-
-    -- Test 35: baja de un IdGuardaparque inexistente.
-    -- Resultado esperado: error 50000 "El guardaparque con id -1 no existe."
-    BEGIN TRY
-        EXEC SP_BajaGuardaparque @IdGuardaparque = -1;
-        PRINT 'Test 35 - FALLO: debería haber lanzado un error por guardaparque inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 35 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 36: baja exitosa de un guardaparque sin relaciones.
-    -- Resultado esperado: se elimina sin error.
-    EXEC SP_BajaGuardaparque @IdGuardaparque = @idGuardaparqueTest34;
-
-    -- Setup para Test 37: una asignación activa para el guardaparque del Test 27,
-    -- que forzará la FK al intentar darlo de baja.
-    INSERT INTO Personal.Asignacion (FechaIngreso, FechaEgreso, Motivo, IdParque, IdGuardaparque)
-    VALUES (GETDATE(), NULL, NULL, @idParqueSetup, @idGuardaparqueTest27);
-
-    -- Test 37: baja de un guardaparque con asignación asociada.
-    -- Resultado esperado: error 50000 "No se puede eliminar el Guardaparque:
-    -- Tiene una Asignacion asociada"
-    BEGIN TRY
-        EXEC SP_BajaGuardaparque @IdGuardaparque = @idGuardaparqueTest27;
-        PRINT 'Test 37 - FALLO: debería haber lanzado un error por asignación asociada.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 37 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    ----------------------------------------
-    -- SP_AltaAsignacion
-    ----------------------------------------
-
-    -- La asignación del Test 37 ya cerró la asignación activa del guardaparque del
-    -- Test 27 (FechaEgreso = NULL), así que primero la cerramos antes de crear
-    -- una nueva con SP_AltaAsignacion.
-    DECLARE @idAsignacionSetup INT;
-    SET @idAsignacionSetup = IDENT_CURRENT('Personal.Asignacion');
-
-    -- Test 38: alta exitosa (asignación abierta, FechaEgreso NULL).
-    -- Resultado esperado: inserta la asignación y actualiza Estado del guardaparque a 'Activo'.
-    -- Nota: primero cerramos la asignación existente para cumplir la validación de "no tiene asignación activa".
-    UPDATE Personal.Asignacion
-    SET FechaEgreso = GETDATE()
-    WHERE IdAsignacion = @idAsignacionSetup;
-
-    DECLARE @idAsignacionTest38 INT;
-    EXEC SP_AltaAsignacion
-        @FechaIngreso    = '2026-01-01',
-        @IdParque        = @idParqueSetup,
-        @IdGuardaparque  = @idGuardaparqueTest27;
-    SET @idAsignacionTest38 = IDENT_CURRENT('Personal.Asignacion');
-
-    SELECT Test = 38, * FROM Personal.Asignacion WHERE IdAsignacion = @idAsignacionTest38;
-
-    -- Test 39: alta con IdParque inexistente.
-    -- Resultado esperado: error 50000 "El parque con id -1 no existe."
-    BEGIN TRY
-        EXEC SP_AltaAsignacion
-            @FechaIngreso   = '2026-01-01',
-            @IdParque       = -1,
-            @IdGuardaparque = @idGuardaparqueTest27;
-        PRINT 'Test 39 - FALLO: debería haber lanzado un error por parque inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 39 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 40: alta con IdGuardaparque inexistente.
-    -- Resultado esperado: error 50000 "El guardaparque con id -1 no existe."
-    BEGIN TRY
-        EXEC SP_AltaAsignacion
-            @FechaIngreso   = '2026-01-01',
-            @IdParque       = @idParqueSetup,
-            @IdGuardaparque = -1;
-        PRINT 'Test 40 - FALLO: debería haber lanzado un error por guardaparque inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 40 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 41: alta cuando el guardaparque ya tiene una asignación activa.
-    -- Resultado esperado: error 50000 "El guardaparque con id X tiene una asignación activa. Para dar de alta..."
-    BEGIN TRY
-        EXEC SP_AltaAsignacion
-            @FechaIngreso   = '2026-06-01',
-            @IdParque       = @idParqueSetup,
-            @IdGuardaparque = @idGuardaparqueTest27; -- ya tiene la asignación del Test 38 activa
-        PRINT 'Test 41 - FALLO: debería haber lanzado un error por asignación activa existente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 41 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    ----------------------------------------
-    -- SP_ModificacionAsignacion
-    ----------------------------------------
-
-    -- Test 42: modificación exitosa (registra fecha de egreso del Test 38).
-    -- Resultado esperado: FechaEgreso se establece con la fecha actual y el guardaparque pasa a Estado 'Inactivo'.
-    EXEC SP_ModificacionAsignacion @IdAsignacion = @idAsignacionTest38;
-
-    SELECT Test = 42, * FROM Personal.Asignacion WHERE IdAsignacion = @idAsignacionTest38;
-    SELECT Test = 42, 'Estado Guardaparque', * FROM Personal.Guardaparque WHERE IdGuardaparque = @idGuardaparqueTest27;
-
-    -- Test 43: modificación de una IdAsignacion inexistente.
-    -- Resultado esperado: error 50000 "La asignación referenciada no existe."
-    BEGIN TRY
-        EXEC SP_ModificacionAsignacion @IdAsignacion = -1;
-        PRINT 'Test 43 - FALLO: debería haber lanzado un error por asignación inexistente.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 43 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    -- Test 44: modificación de una asignación que ya tiene fecha de egreso registrada.
-    -- Resultado esperado: error 50000 "La asignación ya tiene fecha de egreso registrada."
-    BEGIN TRY
-        EXEC SP_ModificacionAsignacion @IdAsignacion = @idAsignacionTest38; -- ya cerrada en Test 42
-        PRINT 'Test 44 - FALLO: debería haber lanzado un error por asignación ya cerrada.';
-    END TRY
-    BEGIN CATCH
-        PRINT 'Test 44 - OK. Error esperado capturado: ' + ERROR_MESSAGE();
-    END CATCH
-
-    ROLLBACK TRANSACTION;
-    PRINT 'Suite completa de Personal (44 tests) finalizada sin errores inesperados.';
+    PRINT 'Suite completa de Concesiones (23 tests) finalizada sin errores inesperados.';
 END TRY
 BEGIN CATCH
-    IF @@TRANCOUNT > 0
+    PRINT 'ERROR INESPERADO durante la suite. Detalle: ' + ERROR_MESSAGE();
+    IF XACT_STATE() <> 0
         ROLLBACK TRANSACTION;
-    PRINT 'ERROR INESPERADO - se hizo ROLLBACK. Detalle: ' + ERROR_MESSAGE();
+END CATCH
+
+
+-- Limpieza post-ejecución
+
+BEGIN TRY
+    DELETE FROM Concesiones.PagoConcesion WHERE IdConcesion IN (@idConcesionSetup, @idConcesionTest10);
+    DELETE FROM Concesiones.Concesion WHERE IdConcesion IN (@idConcesionSetup, @idConcesionTest10);
+    DELETE FROM Concesiones.OrganizacionConcesionaria WHERE IdOrganizacionConcesionaria IN (@idOrgTest1, @idOrgTest6);
+    DELETE FROM Parques.Parque WHERE IdParque = @idParqueSetup;
+    PRINT 'Datos de prueba eliminados.';
+END TRY
+BEGIN CATCH
+    PRINT 'ERROR AL INTENTAR ELIMINAR DATOS DE PRUEBA: ' + ERROR_MESSAGE();
 END CATCH
 GO

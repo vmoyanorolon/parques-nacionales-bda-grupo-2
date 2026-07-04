@@ -8,14 +8,14 @@ USE ParquesNacionales
 GO
 
 -- =============================================
--- SP_RegistrarVentaEntradaMasiva
+-- USP_RegistrarVentaEntradaMasiva
 -- Abre UNA transacción, calcula el descuento y delega creacion a los SPs.
 -- =============================================
 /*
-DROP PROCEDURE SP_RegistrarVentaEntradaMasiva
+DROP PROCEDURE USP_RegistrarVentaEntradaMasiva
 */
 
-CREATE OR ALTER PROCEDURE SP_RegistrarVentaEntradaMasiva
+CREATE OR ALTER PROCEDURE USP_RegistrarVentaEntradaMasiva
 	@IdVisitante INT,
 	@MetodoDePago VARCHAR(20),
 	@PuntoDeVenta VARCHAR(20),
@@ -55,9 +55,9 @@ BEGIN
 
 	BEGIN TRANSACTION
 	BEGIN TRY
-		EXEC SP_AltaVenta @IdVisitante, @Fecha, @MetodoDePago, @PuntoDeVenta, @IdVenta = @IdVenta OUTPUT
-		EXEC SP_AltaLineasDeEntradaParque @IdVenta, @LineasParque, @Factor
-		EXEC SP_AltaLineasDeEntradaActividad @IdVenta, @LineasActividad, @Factor
+		EXEC USP_AltaVenta @IdVisitante, @Fecha, @MetodoDePago, @PuntoDeVenta, @IdVenta = @IdVenta OUTPUT
+		EXEC USP_AltaLineasDeEntradaParque @IdVenta, @LineasParque, @Factor
+		EXEC USP_AltaLineasDeEntradaActividad @IdVenta, @LineasActividad, @Factor
 
 		COMMIT TRANSACTION
 		PRINT 'La venta ' + CAST(@IdVenta AS VARCHAR) + ' fue registrada con éxito (descuento ' + CAST(@Descuento AS VARCHAR) + '%)'
@@ -70,12 +70,12 @@ END
 GO
 
 -- =============================================
--- SP_AsignarGuiaATour
+-- USP_AsignarGuiaATour
 -- =============================================
 /*
-DROP PROCEDURE SP_AsignarGuiaATour;
+DROP PROCEDURE USP_AsignarGuiaATour;
 */
-CREATE OR ALTER PROCEDURE SP_AsignarGuiaATour
+CREATE OR ALTER PROCEDURE USP_AsignarGuiaATour
     @IdGuia INT,
     @IdActividad INT,
     @DiasVigentes INT,
@@ -142,14 +142,14 @@ END
 GO
 
 -- =============================================
--- SP_RegistrarPagoConcesion
+-- USP_RegistrarPagoConcesion
 -- =============================================
 
 /*
-DROP PROCEDURE SP_RegistrarPagoConcesion
+DROP PROCEDURE USP_RegistrarPagoConcesion
 */
 
-CREATE OR ALTER PROCEDURE SP_RegistrarPagoConcesion
+CREATE OR ALTER PROCEDURE USP_RegistrarPagoConcesion
     @IdConcesion INT,
     @Monto DECIMAL(10,2),
     @Fecha DATETIME = NULL
@@ -230,15 +230,15 @@ END
 GO
 
 -- =============================================
--- SP_ActualizarPrecioEntrada
+-- USP_ActualizarPrecioEntrada
 -- Actualiza el costo de las entradas (EntradaParque) de un parque.
 -- =============================================
 
 /*
-DROP PROCEDURE SP_ActualizarPrecioEntrada
+DROP PROCEDURE USP_ActualizarPrecioEntrada
 */
 
-CREATE OR ALTER PROCEDURE SP_ActualizarPrecioEntrada
+CREATE OR ALTER PROCEDURE USP_ActualizarPrecioEntrada
     @IdParque INT,
     @NuevoCosto DECIMAL(10,2)
 AS

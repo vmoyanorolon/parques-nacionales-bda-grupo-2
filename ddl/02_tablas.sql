@@ -19,6 +19,7 @@ GO
 ----------------------------------------
 
 /*
+DROP TABLE Parques.LogImportacionParque
 DROP TABLE Parques.Parque
 */
 
@@ -26,18 +27,36 @@ IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'Parque')
 BEGIN
 	CREATE TABLE Parques.Parque(
 		IdParque INT IDENTITY(1,1) PRIMARY KEY,
-		Nombre VARCHAR(50) NOT NULL,
+		Nombre VARCHAR(100) NOT NULL,
 		HorarioCierre TIME NOT NULL,
 		HorarioApertura TIME NOT NULL,
 		Superficie DECIMAL (10,2) NOT NULL CONSTRAINT CK_Parque_Superficie CHECK(Superficie > 0),
+		-- Regla de negocio: si no se especifica el costo de la hectárea, automáticamente será de 500.00 (contempla importaciones)
+		CostoHectarea DECIMAL(10,2) NOT NULL CONSTRAINT CK_Parque_CostoHectarea CHECK(CostoHectarea > 0) CONSTRAINT DF_Parque_CostoHectarea DEFAULT(500.00),
 		Provincia VARCHAR(50) NOT NULL,
 		Numero INT NOT NULL,
 		Localidad VARCHAR(50) NOT NULL,
 		TipoParque VARCHAR(50) NOT NULL CONSTRAINT CK_Parque_TipoParque CHECK(TipoParque IN('Parque Nacional',
 						'Monumento Natural','Reserva Nacional',
 						'Reserva Natural Estricta','Reserva Natural Silvestre',
-						'Reserva Natural Educativa'))
+						'Reserva Natural Educativa')),
+		Latitud  DECIMAL(9,6) NULL,   
+		Longitud DECIMAL(9,6) NULL, 
+		Departamento VARCHAR(50) NULL,  
+		CodigoPostal VARCHAR(12) NULL  
 		)
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionParque')
+BEGIN
+    CREATE TABLE Parques.LogImportacionParque (
+        IdLog            INT IDENTITY(1,1) PRIMARY KEY,
+        NombreArchivo    VARCHAR(500)  NOT NULL,
+        FechaImportacion DATETIME      NOT NULL DEFAULT GETDATE(),
+        TipoEvento       VARCHAR(30)   NOT NULL,   -- 'ERROR_VALIDACION' | 'DUPLICADO_INTRAARCHIVO'
+        ClaveOrigen      VARCHAR(200)  NULL,       -- nombre del parque en el archivo
+        Motivo           VARCHAR(500)  NOT NULL
+    )
 END
 
 ----------------------------------------
@@ -82,6 +101,7 @@ BEGIN
 		HoraInicio TIME(0) NOT NULL,
 		HoraFin TIME(0) NOT NULL,
 		DiaDeSemana TINYINT NOT NULL CONSTRAINT CK_Turno_DiaDeSemana CHECK (DiaDeSemana BETWEEN 1 AND 7), -- Domingo = 1
+		Estado VARCHAR(30) NOT NULL CONSTRAINT CK_Turno_Estado CHECK(Estado IN('disponible','cupo lleno')) CONSTRAINT DF_Turno_Estado DEFAULT('disponible'),
 		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad)
 	);
 END
@@ -116,6 +136,7 @@ END
 ----------------------------------------
 
 /*
+DROP TABLE Concesiones.LogImportacionConcesionaria
 DROP TABLE Concesiones.PagoConcesion
 DROP TABLE Concesiones.Concesion
 DROP TABLE Concesiones.OrganizacionConcesionaria
@@ -126,7 +147,7 @@ BEGIN
 	CREATE TABLE Concesiones.OrganizacionConcesionaria(
 		IdOrganizacionConcesionaria INT IDENTITY(1,1) PRIMARY KEY,
 		Nombre VARCHAR(50) NOT NULL,
-		TipoActividad VARCHAR(50) NOT NULL,
+		TipoActividad VARCHAR(200) NOT NULL,
 		Cuit CHAR(11) NOT NULL,
 		CorreoContacto VARCHAR(100) CONSTRAINT CK_OrganizacionConcesionaria_CorreoContacto CHECK(CorreoContacto LIKE '%_@__%.__%'),
 		TelefonoContacto VARCHAR(20),
@@ -148,6 +169,21 @@ BEGIN
 	)
 END
 
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionConcesionaria')
+BEGIN
+    CREATE TABLE Concesiones.LogImportacionConcesionaria (
+        IdLog             INT IDENTITY(1,1) PRIMARY KEY,
+        NombreArchivo     VARCHAR(500) NOT NULL,
+        FechaImportacion  DATETIME NOT NULL DEFAULT GETDATE(),
+        TipoEvento        VARCHAR(30) CONSTRAINT CK_LogImportacionConcesionaria_TipoEvento CHECK(TipoEvento IN (
+                               'ERROR_VALIDACION','DUPLICADO','SIN_MATCH_PARQUE',
+                               'LIMITE_HECTAREAS_ALCANZADO','ERROR_FERIADOS','CONCESION_CREADA')) NOT NULL,
+        CuitOrigen        VARCHAR(50) NULL,
+        RazonSocialOrigen VARCHAR(200) NULL,
+        Motivo            VARCHAR(500) NOT NULL
+    )
+END
+
 IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'PagoConcesion')
 BEGIN
 	CREATE TABLE Concesiones.PagoConcesion(
@@ -166,6 +202,7 @@ END
 DROP TABLE Personal.Asignacion
 DROP TABLE Personal.Habilitacion
 DROP TABLE Personal.GuiaTrabajaEnParque
+DROP TABLE Personal.LogImportacionGuia
 DROP TABLE Personal.Guia
 DROP TABLE Personal.Guardaparque
 */
@@ -183,6 +220,19 @@ BEGIN
 		Nombre VARCHAR(50) NOT NULL,
 		Titulo VARCHAR(50),
 		Especialidad VARCHAR(50) NOT NULL
+	)
+END
+
+IF NOT EXISTS (SELECT name FROM sys.tables WHERE name = 'LogImportacionGuia')
+BEGIN
+	CREATE TABLE Personal.LogImportacionGuia (
+		IdLog               INT IDENTITY(1,1) PRIMARY KEY,
+		NombreArchivo       VARCHAR(500)    NOT NULL,
+		FechaImportacion    DATETIME        NOT NULL DEFAULT GETDATE(),
+		TipoEvento          VARCHAR(30)     NOT NULL,   -- 'ERROR_VALIDACION' | 'DUPLICADO_INTRAARCHIVO'
+		NumeroLegajoOrigen  VARCHAR(50)     NULL,
+		NumeroDocumento     VARCHAR(15)     NULL,
+		Motivo              VARCHAR(500)    NOT NULL
 	)
 END
 
@@ -269,6 +319,7 @@ BEGIN
 		Cantidad TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaActividad_Cantidad CHECK(Cantidad >0),
 		Subtotal AS (PrecioUnitario * Cantidad) PERSISTED,
 		NumeroDeItem TINYINT NOT NULL CONSTRAINT CK_LineaDeEntradaActividad_NumeroDeItem CHECK(NumeroDeItem >0),
+		FechaHoraAsistencia DATETIME NOT NULL,
 		IdVenta INT NOT NULL FOREIGN KEY REFERENCES Ventas.Venta(IdVenta),
 		IdActividad INT NOT NULL FOREIGN KEY REFERENCES Turismo.Actividad(IdActividad),
 

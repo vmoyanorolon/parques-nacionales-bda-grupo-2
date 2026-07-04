@@ -8,12 +8,12 @@ USE ParquesNacionales
 GO
 
 -- =============================================
--- SP_AltaOrganizacionConcesionaria
+-- USP_AltaOrganizacionConcesionaria
 -- =============================================
 
---DROP PROCEDURE SP_AltaOrganizacionConcesionaria
+--DROP PROCEDURE USP_AltaOrganizacionConcesionaria
 
-CREATE OR ALTER PROCEDURE SP_AltaOrganizacionConcesionaria
+CREATE OR ALTER PROCEDURE USP_AltaOrganizacionConcesionaria
     @Nombre VARCHAR(50),
     @TipoActividad VARCHAR(50),
     @Cuit CHAR(11),
@@ -53,12 +53,12 @@ END
 GO
 
 -- =============================================
--- SP_ModificacionOrganizacionConcesionaria
+-- USP_ModificacionOrganizacionConcesionaria
 -- =============================================
 
---DROP PROCEDURE SP_ModificacionOrganizacionConcesionaria
+--DROP PROCEDURE USP_ModificacionOrganizacionConcesionaria
 
-CREATE OR ALTER PROCEDURE SP_ModificacionOrganizacionConcesionaria
+CREATE OR ALTER PROCEDURE USP_ModificacionOrganizacionConcesionaria
     @IdOrganizacionConcesionaria INT,
     @Cuit CHAR(11) = NULL,
     @Nombre VARCHAR(50) = NULL,
@@ -114,12 +114,12 @@ END
 GO
 
 -- =============================================
--- SP_BajaOrganizacionConcesionaria
+-- USP_BajaOrganizacionConcesionaria
 -- =============================================
 
---DROP PROCEDURE SP_BajaOrganizacionConcesionaria
+--DROP PROCEDURE USP_BajaOrganizacionConcesionaria
 
-CREATE OR ALTER PROCEDURE SP_BajaOrganizacionConcesionaria
+CREATE OR ALTER PROCEDURE USP_BajaOrganizacionConcesionaria
     @IdOrganizacionConcesionaria INT
 AS
 BEGIN
@@ -156,12 +156,12 @@ END
 GO
 
 -- =============================================
--- SP_AltaConcesion
+-- USP_AltaConcesion
 -- =============================================
 
---DROP PROCEDURE SP_AltaConcesion
+--DROP PROCEDURE USP_AltaConcesion
 
-CREATE OR ALTER PROCEDURE SP_AltaConcesion
+CREATE OR ALTER PROCEDURE USP_AltaConcesion
     @IdParque INT,
     @IdOrganizacionConcesionaria INT,
     @CanonMensual DECIMAL(10,2),
@@ -225,12 +225,12 @@ END
 GO
 
 -- =============================================
--- SP_ModificacionConcesion
+-- USP_ModificacionConcesion
 -- =============================================
 
---DROP PROCEDURE SP_ModificacionConcesion
+--DROP PROCEDURE USP_ModificacionConcesion
 
-CREATE OR ALTER PROCEDURE SP_ModificacionConcesion
+CREATE OR ALTER PROCEDURE USP_ModificacionConcesion
     @IdConcesion INT,
     @CanonMensual DECIMAL(10,2) = NULL,
     @ExtensionConcedida DECIMAL(10,2) = NULL
@@ -287,12 +287,12 @@ END
 GO
 
 -- =============================================
--- SP_BajaConcesion
+-- USP_BajaConcesion
 -- =============================================
 
---DROP PROCEDURE SP_BajaConcesion
+--DROP PROCEDURE USP_BajaConcesion
 
-CREATE OR ALTER PROCEDURE SP_BajaConcesion
+CREATE OR ALTER PROCEDURE USP_BajaConcesion
     @IdConcesion INT
 AS
 BEGIN
@@ -322,7 +322,7 @@ BEGIN
 
     BEGIN TRANSACTION
         UPDATE Concesiones.Concesion
-        SET EstadoConcesion = 'Inactivo'
+        SET EstadoConcesion = 'Inactivo', FechaFin = GETDATE()
         WHERE IdConcesion = @IdConcesion
     COMMIT TRANSACTION
 
@@ -331,12 +331,12 @@ END
 GO
 
 -- =============================================
--- SP_AltaPagoConcesion
+-- USP_AltaPagoConcesion
 -- =============================================
 
---DROP PROCEDURE SP_AltaPagoConcesion
+--DROP PROCEDURE USP_AltaPagoConcesion
 
-CREATE OR ALTER PROCEDURE SP_AltaPagoConcesion
+CREATE OR ALTER PROCEDURE USP_AltaPagoConcesion
     @IdConcesion INT,
     @Fecha DATETIME = NULL
 AS
