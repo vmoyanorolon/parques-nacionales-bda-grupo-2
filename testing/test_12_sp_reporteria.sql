@@ -2,6 +2,7 @@
 -- Materia: 3641 
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamin Velazquez (46.641.239), Valentin Moyano Rolon (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripcion: Testing de los SP de reporteria (Entrega 7).
 
 USE ParquesNacionales
@@ -51,19 +52,19 @@ DECLARE @IdActividadA INT = SCOPE_IDENTITY();
 -- Entradas al parque A (2 fechas) y parque B (1 fecha), costo 50 c/u
 -- Fechas elegidas en 2026: enero (mes 1) y febrero (mes 2)
 INSERT INTO Turismo.EntradaParque (Costo, FechaAcceso, IdParque)
-VALUES (50.00, '2026-01-10', @IdParqueA),   -- enero
-       (50.00, '2026-02-15', @IdParqueA),   -- febrero
-       (50.00, '2026-01-20', @IdParqueB);   -- enero
-DECLARE @IdEntA_Ene INT = (SELECT IdEntradaParque FROM Turismo.EntradaParque WHERE IdParque=@IdParqueA AND FechaAcceso='2026-01-10');
-DECLARE @IdEntA_Feb INT = (SELECT IdEntradaParque FROM Turismo.EntradaParque WHERE IdParque=@IdParqueA AND FechaAcceso='2026-02-15');
-DECLARE @IdEntB_Ene INT = (SELECT IdEntradaParque FROM Turismo.EntradaParque WHERE IdParque=@IdParqueB AND FechaAcceso='2026-01-20');
+VALUES (50.00, '20260110', @IdParqueA),   -- enero
+       (50.00, '20260215', @IdParqueA),   -- febrero
+       (50.00, '20260120', @IdParqueB);   -- enero
+DECLARE @IdEntA_Ene INT = (SELECT IdEntradaParque FROM Turismo.EntradaParque WHERE IdParque=@IdParqueA AND FechaAcceso='20260110');
+DECLARE @IdEntA_Feb INT = (SELECT IdEntradaParque FROM Turismo.EntradaParque WHERE IdParque=@IdParqueA AND FechaAcceso='20260215');
+DECLARE @IdEntB_Ene INT = (SELECT IdEntradaParque FROM Turismo.EntradaParque WHERE IdParque=@IdParqueB AND FechaAcceso='20260120');
 
 -- Ventas
 INSERT INTO Ventas.Venta (Fecha, Monto, MetodoDePago, PuntoDeVenta, IdVisitante)
-VALUES ('2026-01-10', 0, 'Efectivo', 'POS1', @IdVisitante);
+VALUES ('20260110', 0, 'Efectivo', 'POS1', @IdVisitante);
 DECLARE @IdVenta1 INT = SCOPE_IDENTITY();
 INSERT INTO Ventas.Venta (Fecha, Monto, MetodoDePago, PuntoDeVenta, IdVisitante)
-VALUES ('2026-02-15', 0, 'Efectivo', 'POS1', @IdVisitante);
+VALUES ('20260215', 0, 'Efectivo', 'POS1', @IdVisitante);
 DECLARE @IdVenta2 INT = SCOPE_IDENTITY();
 
 -- Lineas de entrada al parque:
@@ -77,7 +78,7 @@ VALUES (50.00, 10, 1, @IdVenta1, @IdEntA_Ene),
 
 -- Linea de actividad (tour parque A, enero): 3 x 100 = 300
 INSERT INTO Ventas.LineaDeEntradaActividad (PrecioUnitario, Cantidad, NumeroDeItem, FechaHoraAsistencia, IdVenta, IdActividad)
-VALUES (100.00, 3, 3, '2026-01-10', @IdVenta1, @IdActividadA);
+VALUES (100.00, 3, 3, '20260110', @IdVenta1, @IdActividadA);
 
 -- Concesion en parque A: canon 1000/mes, inicio 2026-01-01, activa, con 1 pago hecho
 INSERT INTO Concesiones.OrganizacionConcesionaria (Nombre, TipoActividad, Cuit, CorreoContacto)
@@ -85,12 +86,12 @@ VALUES ('ORG_TEST', 'Restaurante', '20304050607', 'org@test.com');
 DECLARE @IdOrg INT = SCOPE_IDENTITY();
 
 INSERT INTO Concesiones.Concesion (IdParque, IdOrganizacionConcesionaria, CanonMensual, ExtensionConcedida, EstadoConcesion, FechaInicio, FechaFin)
-VALUES (@IdParqueA, @IdOrg, 1000.00, 50.00, 'Activo', '2026-01-01', NULL);
+VALUES (@IdParqueA, @IdOrg, 1000.00, 50.00, 'Activo', '20260101', NULL);
 DECLARE @IdConcesion INT = SCOPE_IDENTITY();
 
 -- Un unico pago de canon: 1000 en enero
 INSERT INTO Concesiones.PagoConcesion (IdConcesion, Fecha, Monto)
-VALUES (@IdConcesion, '2026-01-05', 1000.00);
+VALUES (@IdConcesion, '20260105', 1000.00);
 
 PRINT 'Datos sembrados OK.'
 GO
@@ -107,7 +108,7 @@ GO
 PRINT ''
 PRINT '--- PRUEBA 1: USP_ReporteVisitasPorParque 2026 ---'
 PRINT 'Esperado: XML con PARQUE_TEST_A TotalAnual=14, PARQUE_TEST_B TotalAnual=6.'
-EXEC Turismo.USP_ReporteVisitasPorParque 2026;
+EXEC USP_ReporteVisitasPorParque 2026;
 GO
 
 ----------------------------------------------------------------------
@@ -125,7 +126,7 @@ GO
 PRINT ''
 PRINT '--- PRUEBA 2a: USP_ReporteIngresosPorParque MES (valida) ---'
 PRINT 'Esperado A ene: Ent=500 Tours=300 Conc=1000 Total=1800 | A feb: Ent=200 Total=200 | B ene: Ent=300 Total=300'
-EXEC Ventas.USP_ReporteIngresosPorParque 'MES';
+EXEC USP_ReporteIngresosPorParque 'MES';
 GO
 
 ----------------------------------------------------------------------
@@ -138,7 +139,7 @@ PRINT ''
 PRINT '--- PRUEBA 2b: USP_ReporteIngresosPorParque con valor invalido (debe fallar) ---'
 PRINT 'Esperado: RAISERROR "Granularidad invalida. Use SEMANA, MES o ANIO."'
 BEGIN TRY
-    EXEC Ventas.USP_ReporteIngresosPorParque 'DIARIO';
+    EXEC USP_ReporteIngresosPorParque 'DIARIO';
     PRINT '>> FALLO DE LA PRUEBA: se esperaba un error y no se produjo.'
 END TRY
 BEGIN CATCH
@@ -156,7 +157,7 @@ GO
 PRINT ''
 PRINT '--- PRUEBA 2c: USP_ReporteIngresosPorParque ANIO ---'
 PRINT 'Esperado A 2026: Ent=700 Tours=300 Conc=1000 Total=2000 | B 2026: Ent=300 Total=300'
-EXEC Ventas.USP_ReporteIngresosPorParque 'ANIO';
+EXEC USP_ReporteIngresosPorParque 'ANIO';
 GO
 
 ----------------------------------------------------------------------
@@ -173,7 +174,7 @@ GO
 PRINT ''
 PRINT '--- PRUEBA 3: USP_ReporteDeudores ---'
 PRINT 'Esperado: ORG_TEST con MesesPagados=1 y MesesAtrasados>0 (si HOY > ene-2026).'
-EXEC Concesiones.USP_ReporteDeudores;
+EXEC USP_ReporteDeudores;
 GO
 
 ----------------------------------------------------------------------
@@ -187,7 +188,7 @@ GO
 PRINT ''
 PRINT '--- PRUEBA 4: USP_ReporteMatrizVisitas 2026 ---'
 PRINT 'Esperado: A -> Ene=10 Feb=4 (resto NULL) | B -> Ene=6 (resto NULL)'
-EXEC Turismo.USP_ReporteMatrizVisitas 2026;
+EXEC USP_ReporteMatrizVisitas 2026;
 GO
 
 ----------------------------------------------------------------------
@@ -201,7 +202,7 @@ GO
 PRINT ''
 PRINT '--- PRUEBA 5: USP_ReporteParquesYConcesiones ---'
 PRINT 'Esperado: XML; PARQUE_TEST_A con concesion ORG_TEST (canon 1000, Activo); B sin concesiones.'
-EXEC Parques.USP_ReporteParquesYConcesiones;
+EXEC USP_ReporteParquesYConcesiones;
 GO
 
 ----------------------------------------------------------------------
