@@ -13,7 +13,7 @@ GO
 -- ----------------------------------------------------------------------------
 -- VW_MapaParques: una fila por parque con geolocalizacion (para el mapa)
 -- ----------------------------------------------------------------------------
-IF OBJECT_ID('VW_MapaParques', 'V') IS NOT NULL DROP VIEW Parques.VW_MapaParques
+IF OBJECT_ID('VW_MapaParques', 'V') IS NOT NULL DROP VIEW VW_MapaParques
 GO
 CREATE VIEW VW_MapaParques AS
 SELECT
@@ -32,7 +32,7 @@ GO
 -- VW_VisitasPorParque: cantidad de entradas vendidas por parque y periodo
 -- (grafico de barras: visitas por parque)
 -- ----------------------------------------------------------------------------
-IF OBJECT_ID('VW_VisitasPorParque', 'V') IS NOT NULL DROP VIEW Ventas.VW_VisitasPorParque
+IF OBJECT_ID('VW_VisitasPorParque', 'V') IS NOT NULL DROP VIEW VW_VisitasPorParque
 GO
 CREATE VIEW VW_VisitasPorParque AS
 SELECT
@@ -55,7 +55,7 @@ GO
 -- VW_IngresosPorParque: ingresos por entradas, actividades y concesiones
 -- (grafico de torta/barras apiladas: composicion de ingresos por parque)
 -- ----------------------------------------------------------------------------
-IF OBJECT_ID('VW_IngresosPorParque', 'V') IS NOT NULL DROP VIEW Ventas.VW_IngresosPorParque
+IF OBJECT_ID('VW_IngresosPorParque', 'V') IS NOT NULL DROP VIEW VW_IngresosPorParque
 GO
 CREATE VIEW VW_IngresosPorParque AS
 WITH Entradas AS (
