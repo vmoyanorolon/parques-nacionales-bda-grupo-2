@@ -2,6 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripción: Creación de roles de seguridad y asignación de permisos granulares
 
 USE ParquesNacionales
@@ -58,11 +59,11 @@ GO
 | dbo.USP_ImportarGuiasCsv                 | SP   |  ALL  |         |        |          |         |   EXE   |          |
 | dbo.USP_ImportarOrganizacionConcesionaria| SP   |  ALL  |         |        |          |         |   EXE   |          |
 | dbo.USP_ObtenerFeriadosAnio/EnRango      | SP   |  ALL  |         |        |          |         |   EXE   |          |
-| Turismo.USP_ReporteVisitasPorParque      | SP   |  ALL  |         |        |          |         |         |   EXE    |
-| Ventas.USP_ReporteIngresosPorParque      | SP   |  ALL  |         |        |          |         |         |   EXE    |
-| Concesiones.USP_ReporteDeudores          | SP   |  ALL  |         |        |          |         |         |   EXE    |
-| Turismo.USP_ReporteMatrizVisitas         | SP   |  ALL  |         |        |          |         |         |   EXE    |
-| Parques.USP_ReporteParquesYConcesiones   | SP   |  ALL  |         |        |          |         |         |   EXE    |
+| dbo.USP_ReporteVisitasPorParque          | SP   |  ALL  |         |        |          |         |         |   EXE    |
+| dbo.USP_ReporteIngresosPorParque         | SP   |  ALL  |         |        |          |         |         |   EXE    |
+| dbo.USP_ReporteDeudores                  | SP   |  ALL  |         |        |          |         |         |   EXE    |
+| dbo.USP_ReporteMatrizVisitas             | SP   |  ALL  |         |        |          |         |         |   EXE    |
+| dbo.USP_ReporteParquesYConcesiones       | SP   |  ALL  |         |        |          |         |         |   EXE    |
 */
 
 /*
@@ -216,11 +217,11 @@ BEGIN
         ----------------------------------------
         -- ROLCONSULTAS: SP de reportes (12_sp_reporteria.sql) - uso desde la plataforma de BI
         ----------------------------------------
-        GRANT EXECUTE ON Turismo.USP_ReporteVisitasPorParque       TO RolConsultas;
-        GRANT EXECUTE ON Ventas.USP_ReporteIngresosPorParque       TO RolConsultas;
-        GRANT EXECUTE ON Concesiones.USP_ReporteDeudores           TO RolConsultas;
-        GRANT EXECUTE ON Turismo.USP_ReporteMatrizVisitas          TO RolConsultas;
-        GRANT EXECUTE ON Parques.USP_ReporteParquesYConcesiones    TO RolConsultas;
+        GRANT EXECUTE ON dbo.USP_ReporteVisitasPorParque       TO RolConsultas;
+        GRANT EXECUTE ON dbo.USP_ReporteIngresosPorParque       TO RolConsultas;
+        GRANT EXECUTE ON dbo.USP_ReporteDeudores           TO RolConsultas;
+        GRANT EXECUTE ON dbo.USP_ReporteMatrizVisitas          TO RolConsultas;
+        GRANT EXECUTE ON dbo.USP_ReporteParquesYConcesiones    TO RolConsultas;
 
         IF @TranCountInicial = 0
             COMMIT TRANSACTION USP_CrearRolesSeguridad;

@@ -2,6 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripción: Script de carga de datos (seed data) para cumplir los Criterios de Aceptación
 
 USE ParquesNacionales
@@ -25,9 +26,9 @@ IF OBJECT_ID('tempdb..#RutasImportacion') IS NOT NULL DROP TABLE #RutasImportaci
 CREATE TABLE #RutasImportacion (Clave VARCHAR(20) PRIMARY KEY, Ruta VARCHAR(2048) NOT NULL)
 
 INSERT INTO #RutasImportacion (Clave, Ruta) VALUES
-    ('Parques',     'C:\Users\Valen\Desktop\BDA TP\asd\dml\imports\parques.xlsx'),
-    ('Concesiones', 'C:\Users\Valen\Desktop\BDA TP\asd\dml\imports\concesiones_31.12.2023.xlsx'),
-    ('Guias',       'C:\Users\Valen\Desktop\BDA TP\asd\dml\imports\guias-a-julio-2019.csv')
+    ('Parques',     ''),
+    ('Concesiones', ''),
+    ('Guias',       '')
 
 IF EXISTS (SELECT 1 FROM #RutasImportacion WHERE ISNULL(LTRIM(RTRIM(Ruta)), '') = '')
 BEGIN
@@ -86,29 +87,6 @@ DELETE FROM Personal.Guia
 DELETE FROM Personal.Guardaparque
 DELETE FROM Concesiones.OrganizacionConcesionaria
 DELETE FROM Parques.Parque
-
--- Reseteamos los IDENTITY para que los IDs vuelvan a arrancar en 1 y las
--- validaciones (documento/CUIT/nombre duplicado) no choquen con datos previos.
--- Nota: LineaDeEntradaActividad y LineaDeEntradaParque NO tienen columna
--- IDENTITY (su PK es compuesta IdVenta+NumeroDeItem), por eso no llevan RESEED.
-DBCC CHECKIDENT ('Ventas.Venta', RESEED, 0)
-DBCC CHECKIDENT ('Personal.Habilitacion', RESEED, 0)
-DBCC CHECKIDENT ('Personal.Asignacion', RESEED, 0)
-DBCC CHECKIDENT ('Turismo.EntradaParque', RESEED, 0)
-DBCC CHECKIDENT ('Turismo.Turno', RESEED, 0)
-DBCC CHECKIDENT ('Turismo.Actividad', RESEED, 0)
-DBCC CHECKIDENT ('Concesiones.PagoConcesion', RESEED, 0)
-DBCC CHECKIDENT ('Concesiones.Concesion', RESEED, 0)
-DBCC CHECKIDENT ('Concesiones.LogImportacionConcesionaria', RESEED, 0)
-DBCC CHECKIDENT ('Parques.LogImportacionParque', RESEED, 0)
-DBCC CHECKIDENT ('Personal.LogImportacionGuia', RESEED, 0)
-DBCC CHECKIDENT ('Turismo.Visitante', RESEED, 0)
-DBCC CHECKIDENT ('Turismo.TipoVisitante', RESEED, 0)
-DBCC CHECKIDENT ('Personal.Guia', RESEED, 0)
-DBCC CHECKIDENT ('Personal.Guardaparque', RESEED, 0)
-DBCC CHECKIDENT ('Concesiones.OrganizacionConcesionaria', RESEED, 0)
-DBCC CHECKIDENT ('Parques.Parque', RESEED, 0)
-
 PRINT 'Limpieza finalizada. Arrancando carga desde cero.'
 GO
 
@@ -807,3 +785,9 @@ PRINT '=============================================================='
 PRINT ' SEED DATA FINALIZADO'
 PRINT '=============================================================='
 GO
+
+/*
+SELECT * FROM Parques.Parque
+SELECT * FROM Concesiones.Concesion
+SELECT * FROM Personal.Guia
+*/

@@ -2,6 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripción: Entrega 8 - Cifrado de datos sensibles con EncryptByPassPhrase/DecryptByPassPhrase
 --   Se cifran los números de documento/CUIT de Visitante, Guia, Guardaparque y OrganizacionConcesionaria.
 --   Script de MODIFICACIÓN, reejecutable: todos los pasos verifican existencia antes de aplicarse.

@@ -2,6 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripción: Entrega 7 (Reportes)
 
 USE ParquesNacionales
@@ -10,9 +11,9 @@ GO
 -- 1. VISITAS POR SEMANA/MES/AÑO, POR PARQUE  (XML)
 ----------------------------------------
 /*
-EXEC Turismo.USP_ReporteVisitasPorParque 2026
+EXEC USP_ReporteVisitasPorParque 2026
 */
-CREATE OR ALTER PROCEDURE Turismo.USP_ReporteVisitasPorParque
+CREATE OR ALTER PROCEDURE USP_ReporteVisitasPorParque
     @Anio INT = NULL   -- opcional: filtra un año
 AS
 BEGIN
@@ -60,9 +61,9 @@ GO
 -- 2. INGRESOS POR PARQUE  (entradas + tours + concesiones)
 ----------------------------------------
 /*
-EXEC Ventas.USP_ReporteIngresosPorParque 'MES'
+EXEC USP_ReporteIngresosPorParque 'MES'
 */
-CREATE OR ALTER PROCEDURE Ventas.USP_ReporteIngresosPorParque
+CREATE OR ALTER PROCEDURE USP_ReporteIngresosPorParque
     @Granularidad VARCHAR(10) = 'MES'   -- 'SEMANA' | 'MES' | 'ANIO'
 AS
 BEGIN
@@ -133,9 +134,9 @@ GO
 -- 3. DEUDORES: concesiones atrasadas en pagos
 ----------------------------------------
 /*
-EXEC Concesiones.USP_ReporteDeudores
+EXEC USP_ReporteDeudores
 */
-CREATE OR ALTER PROCEDURE Concesiones.USP_ReporteDeudores
+CREATE OR ALTER PROCEDURE USP_ReporteDeudores
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -182,9 +183,9 @@ GO
 -- 4. MATRIZ DE VISITAS: pivot mes x parque
 ----------------------------------------
 /*
-EXEC Turismo.USP_ReporteMatrizVisitas 2026
+EXEC USP_ReporteMatrizVisitas 2026
 */
-CREATE OR ALTER PROCEDURE Turismo.USP_ReporteMatrizVisitas
+CREATE OR ALTER PROCEDURE USP_ReporteMatrizVisitas
     @Anio INT
 AS
 BEGIN
@@ -214,9 +215,9 @@ GO
 -- 5. PARQUES Y CONCESIONES: vector anidado  (XML)
 ----------------------------------------
 /*
-EXEC Parques.USP_ReporteParquesYConcesiones
+EXEC USP_ReporteParquesYConcesiones
 */
-CREATE OR ALTER PROCEDURE Parques.USP_ReporteParquesYConcesiones
+CREATE OR ALTER PROCEDURE USP_ReporteParquesYConcesiones
 AS
 BEGIN
     SET NOCOUNT ON;

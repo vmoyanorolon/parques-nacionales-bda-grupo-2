@@ -2,6 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamín Velázquez (46.641.239), Valentín Moyano Rolón (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripción: Testing de Entrega 8 (Seguridad) - SOLO procedures. Cubre los
 --   procedures agregados (USP_CifrarDatosSensibles_*, USP_Consulta*PorId) y los
 --   modificados por el cifrado (USP_Alta*/USP_Modificacion* de Visitante, Guia,
@@ -236,8 +237,8 @@ END CATCH
 ----------------------------------------------------------------------------------
 
 DECLARE @FraseClaveTest VARCHAR(128) = 'ParquesNacionales_Cifrado_TP';
-DECLARE @rutaArchivoConcesiones VARCHAR(2048) = 'C:\Users\Valen\Desktop\BDA TP\asd\dml\imports\concesiones_31.12.2023.xlsx';
-DECLARE @rutaArchivoGuias VARCHAR(500) = 'C:\Users\Valen\Desktop\BDA TP\asd\dml\imports\guias-a-julio-2019.csv';
+DECLARE @rutaArchivoConcesiones VARCHAR(2048) = '';
+DECLARE @rutaArchivoGuias VARCHAR(500) = '';
 
 BEGIN TRY
     DELETE FROM Concesiones.PagoConcesion;

@@ -2,6 +2,7 @@
 -- Materia: 3641 - Bases de Datos Aplicada
 -- Grupo: 2
 -- Integrantes: Patricio Gaudino Tognozzi (46.636.294), Benjamin Velazquez (46.641.239), Valentin Moyano Rolon (46.292.248)
+-- Fecha: 04/07/2026
 -- Descripcion: Testing de USP_CrearRolesSeguridad.
 --              Verifica creacion de roles, idempotencia y otorgamiento de permisos granulares.
 
@@ -14,22 +15,68 @@ PRINT '=========================================================='
 GO
 
 SET NOCOUNT ON;
+SET XACT_ABORT ON;
 
 ----------------------------------------------------------------------
 -- PRUEBA 1: Primera ejecucion - creacion de los 7 roles
 ----------------------------------------------------------------------
--- Resultado esperado: el SP se ejecuta sin error. Al consultar sys.database_principals
--- deben existir EXACTAMENTE los 7 roles definidos por el SP (ademas de los fixed roles,
--- que se excluyen con is_fixed_role = 0).
+-- Resultado esperado: el SP se ejecuta sin error. Si falla, el CATCH limpia
+-- los roles que hayan quedado a medias y re-lanza el error.
 ----------------------------------------------------------------------
 PRINT ''
 PRINT '--- PRUEBA 1: primera ejecucion (creacion de roles) ---'
+
+BEGIN TRY
+
+    EXEC USP_CrearRolesSeguridad;
+
+    -- PRUEBA 2 (idempotencia): segunda ejecucion consecutiva dentro del mismo TRY.
+    -- El procedure debe detectar que los roles ya existen y no duplicar ni fallar.
+    PRINT ''
+    PRINT '--- PRUEBA 2: idempotencia (segunda ejecucion) ---'
+    EXEC USP_CrearRolesSeguridad;
+
+    PRINT ''
+    PRINT 'Creacion de roles finalizada correctamente. Los roles quedan creados.'
+
+END TRY
+BEGIN CATCH
+
+    ------------------------------------------------------------------
+    -- Ante cualquier error en la creacion, se limpian los roles que
+    -- hayan quedado a medias. Primero hay que quitar la membresia de
+    -- db_owner y recien despues dropear el rol.
+    ------------------------------------------------------------------
+    PRINT 'Se produjo un ERROR durante la creacion de roles. Se limpian los roles creados a medias.';
+    PRINT 'Mensaje: ' + ERROR_MESSAGE();
+
+    IF EXISTS (SELECT 1 FROM sys.database_role_members drm
+               JOIN sys.database_principals r ON r.principal_id = drm.role_principal_id
+               JOIN sys.database_principals m ON m.principal_id = drm.member_principal_id
+               WHERE r.name = 'db_owner' AND m.name = 'RolAdministrador')
+        ALTER ROLE db_owner DROP MEMBER RolAdministrador;
+
+    DROP ROLE IF EXISTS RolAdministrador;
+    DROP ROLE IF EXISTS RolTurismo;
+    DROP ROLE IF EXISTS RolVentas;
+    DROP ROLE IF EXISTS RolPersonal;
+    DROP ROLE IF EXISTS RolConcesiones;
+    DROP ROLE IF EXISTS RolImportador;
+    DROP ROLE IF EXISTS RolConsultas;
+
+    PRINT 'Limpieza realizada: no quedaron roles a medias.';
+
+    -- Re-lanzar el error para que quede visible y se detenga el script.
+    THROW;
+
+END CATCH
 GO
 
-EXEC USP_CrearRolesSeguridad;
-GO
+----------------------------------------------------------------------
+-- A partir de aca, verificaciones de solo lectura (no modifican nada).
+----------------------------------------------------------------------
 
--- Verificacion: deben aparecer los 7 roles esperados. Conteo esperado = 7.
+-- Verificacion PRUEBA 1: deben aparecer los 7 roles esperados. Conteo esperado = 7.
 SELECT dp.name AS RolCreado
 FROM sys.database_principals dp
 WHERE dp.type = 'R'
@@ -42,18 +89,9 @@ ORDER BY dp.name;
 
 GO
 
-----------------------------------------------------------------------
--- PRUEBA 2: Idempotencia - segunda ejecucion consecutiva
-----------------------------------------------------------------------
--- La cantidad de roles no se duplica, el procedure detecta que ya existen
-----------------------------------------------------------------------
+-- Verificacion PRUEBA 2: la cantidad de roles no se duplica.
 PRINT ''
-PRINT '--- PRUEBA 2: idempotencia (segunda ejecucion) ---'
-GO
-
-EXEC USP_CrearRolesSeguridad;
-GO
-
+PRINT '--- PRUEBA 2: verificacion idempotencia ---'
 SELECT COUNT(*) AS CantidadRolesPropios
 FROM sys.database_principals
 WHERE type = 'R'
