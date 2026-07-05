@@ -244,3 +244,52 @@ BEGIN
     FOR XML PATH('Parque'), ROOT('ReporteParquesConcesiones');
 END
 GO
+
+----------------------------------------
+-- 6. ACTIVIDADES MÁS DEMANDADAS
+----------------------------------------
+/*
+EXEC Turismo.USP_ReporteActividadesMasDemandadas
+EXEC Turismo.USP_ReporteActividadesMasDemandadas @Anio = 2026, @Top = 5
+*/
+CREATE OR ALTER PROCEDURE USP_ReporteActividadesMasDemandadas
+    @Anio INT = NULL,   -- opcional: filtra un año
+    @Top  INT = NULL    -- opcional: limita al Top N (NULL = todas)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    ;WITH Demanda AS (
+        SELECT
+            a.IdActividad,
+            a.Nombre                         AS Actividad,
+            a.Tipo,
+            p.Nombre                         AS Parque,
+            SUM(la.Cantidad)                 AS TotalContrataciones,
+            COUNT(DISTINCT la.IdVenta)       AS CantidadVentas,
+            SUM(la.Subtotal)                 AS IngresoTotal
+        FROM Ventas.LineaDeEntradaActividad la
+        JOIN Turismo.Actividad a ON a.IdActividad = la.IdActividad
+        JOIN Parques.Parque p    ON p.IdParque = a.IdParque
+        WHERE (@Anio IS NULL OR YEAR(la.FechaHoraAsistencia) = @Anio)
+        GROUP BY a.IdActividad, a.Nombre, a.Tipo, p.Nombre
+    )
+    SELECT
+        CASE WHEN @Top IS NULL THEN NULL
+             ELSE ROW_NUMBER() OVER (ORDER BY TotalContrataciones DESC) END AS Ranking,
+        Actividad,
+        Tipo,
+        Parque,
+        TotalContrataciones,
+        CantidadVentas,
+        IngresoTotal
+    FROM (
+        SELECT TOP (ISNULL(@Top, 2147483647)) -- máx INT = sin límite
+            Actividad, Tipo, Parque,
+            TotalContrataciones, CantidadVentas, IngresoTotal
+        FROM Demanda
+        ORDER BY TotalContrataciones DESC
+    ) AS d
+    ORDER BY TotalContrataciones DESC;
+END
+GO
