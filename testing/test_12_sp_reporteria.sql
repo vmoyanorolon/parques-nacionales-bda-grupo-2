@@ -93,6 +93,15 @@ DECLARE @IdConcesion INT = SCOPE_IDENTITY();
 INSERT INTO Concesiones.PagoConcesion (IdConcesion, Fecha, Monto)
 VALUES (@IdConcesion, '20260105', 1000.00);
 
+-- Segunda actividad (tour) en parque B: costo 80, MENOR demanda que TOUR_TEST_A
+INSERT INTO Turismo.Actividad (Nombre, Tipo, Costo, DuracionMinutos, CupoMaximo, IdParque)
+VALUES ('TOUR_TEST_B', 'Tour', 80.00, 45, 15, @IdParqueB);
+DECLARE @IdActividadB INT = SCOPE_IDENTITY();
+
+-- Linea de actividad (tour parque B, enero): 1 x 80 = 80  (1 sola contratacion)
+INSERT INTO Ventas.LineaDeEntradaActividad (PrecioUnitario, Cantidad, NumeroDeItem, FechaHoraAsistencia, IdVenta, IdActividad)
+VALUES (80.00, 1, 4, '20260110', @IdVenta1, @IdActividadB);
+
 PRINT 'Datos sembrados OK.'
 GO
 
@@ -203,6 +212,37 @@ PRINT ''
 PRINT '--- PRUEBA 5: USP_ReporteParquesYConcesiones ---'
 PRINT 'Esperado: XML; PARQUE_TEST_A con concesion ORG_TEST (canon 1000, Activo); B sin concesiones.'
 EXEC USP_ReporteParquesYConcesiones;
+GO
+
+----------------------------------------------------------------------
+-- PRUEBA 6: USP_ReporteActividadesMasDemandadas
+----------------------------------------------------------------------
+-- Demanda sembrada (por SUM(Cantidad) sobre LineaDeEntradaActividad):
+--   TOUR_TEST_A (Parque A): Cantidad=3, 1 venta,  Ingreso=3*100=300
+--   TOUR_TEST_B (Parque B): Cantidad=1, 1 venta,  Ingreso=1*80 =80
+-- Ambas contrataciones tienen FechaHoraAsistencia en 2026.
+----------------------------------------------------------------------
+
+-- 6a: sin parametros -> todas las actividades, ordenadas por demanda desc
+PRINT ''
+PRINT '--- PRUEBA 6a: USP_ReporteActividadesMasDemandadas (sin filtros) ---'
+PRINT 'Esperado: 2 filas. 1o TOUR_TEST_A (Total=3, Ventas=1, Ingreso=300);'
+PRINT '          2o TOUR_TEST_B (Total=1, Ventas=1, Ingreso=80). Ranking=NULL.'
+EXEC USP_ReporteActividadesMasDemandadas;
+GO
+
+-- 6b: filtrado por anio 2026 + Top 1 -> solo la mas demandada, con Ranking=1
+PRINT ''
+PRINT '--- PRUEBA 6b: USP_ReporteActividadesMasDemandadas @Anio=2026, @Top=1 ---'
+PRINT 'Esperado: 1 fila. TOUR_TEST_A con Ranking=1, Total=3, Ingreso=300.'
+EXEC USP_ReporteActividadesMasDemandadas @Anio = 2026, @Top = 1;
+GO
+
+-- 6c: filtrado por anio sin datos (2020) -> 0 filas
+PRINT ''
+PRINT '--- PRUEBA 6c: USP_ReporteActividadesMasDemandadas @Anio=2020 (sin datos) ---'
+PRINT 'Esperado: 0 filas (no hay contrataciones en 2020).'
+EXEC USP_ReporteActividadesMasDemandadas @Anio = 2020;
 GO
 
 ----------------------------------------------------------------------
