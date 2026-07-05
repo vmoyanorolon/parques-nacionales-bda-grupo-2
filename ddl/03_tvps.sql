@@ -8,16 +8,14 @@
 USE ParquesNacionales
 GO
 
-IF TYPE_ID('Ventas.TVP_LineaParque') IS NOT NULL DROP TYPE Ventas.TVP_LineaParque
-GO
-CREATE TYPE Ventas.TVP_LineaParque AS TABLE (
-	IdEntradaParque INT NOT NULL,
-	Cantidad TINYINT NOT NULL
-)
+IF TYPE_ID('Ventas.TVP_LineaParque') IS NULL
+    CREATE TYPE Ventas.TVP_LineaParque AS TABLE (
+        IdEntradaParque INT NOT NULL,
+        Cantidad TINYINT NOT NULL
+    )
 GO
 
-IF TYPE_ID('Ventas.TVP_LineaActividad') IS NOT NULL DROP TYPE Ventas.TVP_LineaActividad
-GO
+IF TYPE_ID('Ventas.TVP_LineaActividad') IS NULL
 CREATE TYPE Ventas.TVP_LineaActividad AS TABLE (
 	IdActividad INT NOT NULL,
 	Cantidad TINYINT NOT NULL,
